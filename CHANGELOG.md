@@ -5,6 +5,10 @@ All notable user-facing changes to Slapss.
 This file is the source of truth for release notes. The public web changelog and
 GitHub Releases are generated from it.
 
+## Unreleased
+
+- Fixed: the per-calendar Google account option (Settings → Calendars) was missing from some calendars. If you had renamed a Google account in System Settings — common for a work Google Workspace account — its calendars were the ones that lost the option. Every calendar now offers it.
+
 ## v2.0.0 — August 21, 2026
 
 Slapss is now open source.
