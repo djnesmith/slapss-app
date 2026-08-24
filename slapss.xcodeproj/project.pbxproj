@@ -6,8 +6,19 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXContainerItemProxy section */
+		1837180A2FA3600A001AAAD2 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 183717BE2FA3505E001AAAD2 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 183717C52FA3505E001AAAD2;
+			remoteInfo = slapss;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		183717C62FA3505E001AAAD2 /* slapss.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = slapss.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		183718012FA3600A001AAAD2 /* slapssTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = slapssTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -29,10 +40,22 @@
 			path = slapss;
 			sourceTree = "<group>";
 		};
+		183718022FA3600A001AAAD2 /* slapssTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = slapssTests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		183717C32FA3505E001AAAD2 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		183718042FA3600A001AAAD2 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -46,6 +69,7 @@
 			isa = PBXGroup;
 			children = (
 				183717C82FA3505E001AAAD2 /* slapss */,
+				183718022FA3600A001AAAD2 /* slapssTests */,
 				183717C72FA3505E001AAAD2 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -54,6 +78,7 @@
 			isa = PBXGroup;
 			children = (
 				183717C62FA3505E001AAAD2 /* slapss.app */,
+				183718012FA3600A001AAAD2 /* slapssTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -83,6 +108,29 @@
 			productReference = 183717C62FA3505E001AAAD2 /* slapss.app */;
 			productType = "com.apple.product-type.application";
 		};
+		183718002FA3600A001AAAD2 /* slapssTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 183718062FA3600A001AAAD2 /* Build configuration list for PBXNativeTarget "slapssTests" */;
+			buildPhases = (
+				183718032FA3600A001AAAD2 /* Sources */,
+				183718042FA3600A001AAAD2 /* Frameworks */,
+				183718052FA3600A001AAAD2 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				183718092FA3600A001AAAD2 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				183718022FA3600A001AAAD2 /* slapssTests */,
+			);
+			name = slapssTests;
+			packageProductDependencies = (
+			);
+			productName = slapssTests;
+			productReference = 183718012FA3600A001AAAD2 /* slapssTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -95,6 +143,9 @@
 				TargetAttributes = {
 					183717C52FA3505E001AAAD2 = {
 						CreatedOnToolsVersion = 26.4.1;
+					};
+					183718002FA3600A001AAAD2 = {
+						TestTargetID = 183717C52FA3505E001AAAD2;
 					};
 				};
 			};
@@ -115,12 +166,20 @@
 			projectRoot = "";
 			targets = (
 				183717C52FA3505E001AAAD2 /* slapss */,
+				183718002FA3600A001AAAD2 /* slapssTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		183717C42FA3505E001AAAD2 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		183718052FA3600A001AAAD2 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -137,7 +196,23 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		183718032FA3600A001AAAD2 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+
+/* Begin PBXTargetDependency section */
+		183718092FA3600A001AAAD2 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 183717C52FA3505E001AAAD2 /* slapss */;
+			targetProxy = 1837180A2FA3600A001AAAD2 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		183717D12FA35060001AAAD2 /* Debug */ = {
@@ -360,6 +435,42 @@
 			};
 			name = Release;
 		};
+		183718072FA3600A001AAAD2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.6;
+				PRODUCT_BUNDLE_IDENTIFIER = com.cancetin.slapssTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/slapss.app/Contents/MacOS/slapss";
+			};
+			name = Debug;
+		};
+		183718082FA3600A001AAAD2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.6;
+				PRODUCT_BUNDLE_IDENTIFIER = com.cancetin.slapssTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/slapss.app/Contents/MacOS/slapss";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -377,6 +488,15 @@
 			buildConfigurations = (
 				183717D42FA35060001AAAD2 /* Debug */,
 				183717D52FA35060001AAAD2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		183718062FA3600A001AAAD2 /* Build configuration list for PBXNativeTarget "slapssTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				183718072FA3600A001AAAD2 /* Debug */,
+				183718082FA3600A001AAAD2 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
