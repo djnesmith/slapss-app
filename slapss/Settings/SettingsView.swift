@@ -436,7 +436,9 @@ struct SettingsView: View {
 
     private var eventKitSection: some View {
         let calendars = aggregator.availableEventKitCalendars
-        let pickerCalendarIDs = googleAuthUserCalendarIDs(in: calendars)
+        let pickerCalendarIDs = Self.googleAuthUserCalendarIDs(
+            in: calendars.map { ($0.calendarIdentifier, $0.source.title) }
+        )
 
         return VStack(alignment: .leading, spacing: 8) {
             Text(lm["settings.calendars.macos.title"])
@@ -515,33 +517,26 @@ struct SettingsView: View {
         }
     }
 
-    /// Which calendars should show the Google `authuser` picker. We try to
-    /// positively identify Google calendars by their EventKit source; when at
-    /// least one is found, only those get the picker. When none can be
-    /// identified (Google Workspace accounts on a custom domain are
-    /// indistinguishable from other CalDAV sources), we fall back to offering
-    /// it on every calendar so the option isn't silently unavailable.
-    private func googleAuthUserCalendarIDs(in calendars: [EKCalendar]) -> Set<String> {
-        let googleIDs = calendars
-            .filter(isLikelyGoogleCalendar)
-            .map(\.calendarIdentifier)
-        if googleIDs.isEmpty {
-            return Set(calendars.map(\.calendarIdentifier))
-        }
-        return Set(googleIDs)
-    }
-
-    /// Best-effort Google detection. EventKit has no `.google` source type, so
-    /// we match on the source title: a Google account synced via Internet
-    /// Accounts carries a "Google" / "gmail" / "googlemail" title (consumer
-    /// accounts use the email address). Custom-domain Workspace accounts can't
-    /// be told apart from generic CalDAV here and fall through to the caller's
-    /// all-calendars fallback.
-    private func isLikelyGoogleCalendar(_ calendar: EKCalendar) -> Bool {
-        let title = calendar.source.title.lowercased()
-        return title.contains("google")
-            || title.contains("gmail")
-            || title.contains("googlemail")
+    /// Which calendars show the Google `authuser` picker: all of them.
+    ///
+    /// Eligibility deliberately ignores `sourceTitle`. Public EventKit exposes
+    /// no provider for a CalDAV source, so identifying Google calendars meant
+    /// substring-matching the source title — which is the account's nickname in
+    /// System Settings, and freely editable. A Google Workspace account renamed
+    /// to something like "IN" failed the match, and the all-calendars fallback
+    /// was global rather than per-account, so a second account that did match
+    /// ("Gmail") suppressed the fallback everywhere. The picker then hid on
+    /// exactly the calendars carrying Meet links.
+    ///
+    /// Offering it everywhere is safe: the setting is opt-in and off by
+    /// default, and a value set on a non-Google calendar is inert because
+    /// `MeetingURLOpener.applyAuthUserIfNeeded` rewrites `meet.google.com`
+    /// URLs only. `sourceTitle` stays in the signature so the rule can be
+    /// asserted against the account names that used to break it.
+    static func googleAuthUserCalendarIDs(
+        in calendars: [(id: String, sourceTitle: String)]
+    ) -> Set<String> {
+        Set(calendars.map(\.id))
     }
 
     /// Per-calendar Google `authuser` index. `-1` is the sentinel for

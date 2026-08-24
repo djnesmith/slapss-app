@@ -15,6 +15,7 @@ GitHub Releases are generated from it.
 - Firefox is the one exception: it can open a new window but can't be positioned, and Settings says so rather than asking you for a permission that wouldn't help.
 - Microsoft Teams meetings are unaffected: those open in the Teams app, not a browser window.
 - Under the hood: this build is no longer sandboxed. macOS does not let a sandboxed app ask Safari to open a window, so the feature could not work at all while it was. The Mac App Store build is still sandboxed — see README for what that trade means.
+- Fixed: the per-calendar Google account option (Settings → Calendars) was missing from some calendars. If you had renamed a Google account in System Settings — common for a work Google Workspace account — its calendars were the ones that lost the option. Every calendar now offers it.
 
 ## v2.0.1 — August 25, 2026
 
