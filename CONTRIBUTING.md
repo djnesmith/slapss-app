@@ -50,6 +50,11 @@ It's the cheapest way to avoid work that won't be merged.
    ```
    xcodebuild build -project slapss.xcodeproj -scheme slapss -destination 'platform=macOS' CODE_SIGNING_ALLOWED=NO
    ```
+   Run the unit tests too. They need no signing and no calendar access, but the
+   test host launches the app, so expect a menu bar item to appear briefly:
+   ```
+   xcodebuild test -project slapss.xcodeproj -scheme slapss -destination 'platform=macOS' CODE_SIGNING_ALLOWED=NO
+   ```
 3. **Keep the diff focused.** One concern per pull request. Don't reformat
    surrounding code.
 4. **Don't change version numbers.** `MARKETING_VERSION` and
