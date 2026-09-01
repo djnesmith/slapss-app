@@ -89,8 +89,12 @@ enum BrowserWindowOpener {
         // is opened exactly once — never both by the script and by the
         // fallback.
         if placement.opensNewWindow, family.supportsNewWindowScript {
-            runScript(newWindowScript(bundleIdentifier: bundleIdentifier, url: url)) { errorNumber in
-                if errorNumber != nil { NSWorkspace.shared.open(url) }
+            let script = newWindowScript(bundleIdentifier: bundleIdentifier, url: url, bounds: bounds)
+            runScript(script) { errorNumber in
+                guard errorNumber != nil else { return }
+                // The combined script failed as a unit. Open the meeting, then
+                // make one separate attempt at placing whatever window opened.
+                NSWorkspace.shared.open(url)
                 if let bounds {
                     placeFrontWindow(of: bundleIdentifier, at: bounds, after: firstPlacementDelay, retrying: true)
                 }
@@ -184,11 +188,22 @@ enum BrowserWindowOpener {
     /// Also tried on an unrecognised browser — `make new document` is a common
     /// idiom, and a browser that doesn't understand it just errors and falls
     /// back to a plain open.
-    private static func newWindowScript(bundleIdentifier: String, url: URL) -> String {
-        """
+    static func newWindowScript(
+        bundleIdentifier: String,
+        url: URL,
+        bounds: ScreenPlacement.WindowBounds?
+    ) -> String {
+        // Creating the window and placing it in ONE script is deliberate. Sent
+        // as two scripts, `front window` in the second one is whatever Safari
+        // happens to have in front by then — observed in testing to be the
+        // user's pre-existing window, which got moved instead of the new one.
+        let place = bounds.map {
+            "\n    set bounds of front window to {\($0.left), \($0.top), \($0.right), \($0.bottom)}"
+        } ?? ""
+        return """
         tell application id \(appleScriptLiteral(bundleIdentifier))
             activate
-            make new document with properties {URL:\(appleScriptLiteral(url.absoluteString))}
+            make new document with properties {URL:\(appleScriptLiteral(url.absoluteString))}\(place)
         end tell
         """
     }

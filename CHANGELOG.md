@@ -14,6 +14,7 @@ GitHub Releases are generated from it.
 - Depending on which browser you use, macOS may ask whether Slapss can control it the first time you switch one of these on. Chrome, Edge, Brave, Vivaldi, Opera and Arc need no permission for a new window. Safari has no other way to be told "new window", and no browser can be told to move a window it already has, so those cases do ask. Slapss explains before macOS does, and if you say no, meetings still open exactly as before — you just don't get the placement. You can change your mind later in System Settings → Privacy & Security → Automation.
 - Firefox is the one exception: it can open a new window but can't be positioned, and Settings says so rather than asking you for a permission that wouldn't help.
 - Microsoft Teams meetings are unaffected: those open in the Teams app, not a browser window.
+- Under the hood: this build is no longer sandboxed. macOS does not let a sandboxed app ask Safari to open a window, so the feature could not work at all while it was. The Mac App Store build is still sandboxed — see README for what that trade means.
 
 ## v2.0.1 — August 25, 2026
 

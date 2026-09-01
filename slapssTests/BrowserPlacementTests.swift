@@ -295,6 +295,60 @@ final class BrowserPlacementPersistenceTests: XCTestCase {
     }
 }
 
+/// Regression cover for the wrong-window bug: creating the window and placing it
+/// have to travel as ONE script. Observed on real hardware 2026-09-01 — sent as
+/// two, `front window` in the second script was the user's pre-existing page, so
+/// that window got moved to the built-in display and the meeting window stayed
+/// where Safari put it.
+final class NewWindowScriptTests: XCTestCase {
+
+    private static let url = URL(string: "https://example.com/join")!
+    private static let bounds = ScreenPlacement.WindowBounds(left: 3840, top: 848, right: 5568, bottom: 1932)
+
+    func testNewWindowAndBoundsTravelInOneScript() {
+        let script = BrowserWindowOpener.newWindowScript(
+            bundleIdentifier: "com.apple.Safari",
+            url: Self.url,
+            bounds: Self.bounds
+        )
+
+        // One `tell` block, so the window just made is still the front one.
+        XCTAssertEqual(script.components(separatedBy: "tell application id").count - 1, 1)
+        XCTAssertTrue(script.contains("make new document"))
+        XCTAssertTrue(script.contains("set bounds of front window to {3840, 848, 5568, 1932}"))
+        // Ordering is what makes it correct: create, then place.
+        let create = script.range(of: "make new document")!
+        let place = script.range(of: "set bounds")!
+        XCTAssertTrue(create.lowerBound < place.lowerBound)
+    }
+
+    /// Without the built-in-display preference the script must not mention
+    /// bounds at all, or a plain new window would get repositioned.
+    func testNewWindowWithoutBoundsOmitsPlacement() {
+        let script = BrowserWindowOpener.newWindowScript(
+            bundleIdentifier: "com.apple.Safari",
+            url: Self.url,
+            bounds: nil
+        )
+
+        XCTAssertTrue(script.contains("make new document"))
+        XCTAssertFalse(script.contains("set bounds"))
+    }
+
+    /// A quote in a calendar-supplied URL must not be able to close the
+    /// literal and let the remainder compile as script.
+    func testQuoteInURLIsEscapedInsideTheScript() {
+        let script = BrowserWindowOpener.newWindowScript(
+            bundleIdentifier: "com.apple.Safari",
+            url: URL(string: "https://example.com/a%22b")!,
+            bounds: nil
+        )
+
+        // Exactly two unescaped quotes belong to each literal we emit.
+        XCTAssertTrue(script.contains("{URL:\"https://example.com/a%22b\"}"))
+    }
+}
+
 final class AppleScriptLiteralTests: XCTestCase {
 
     func testPlainURLIsQuoted() {

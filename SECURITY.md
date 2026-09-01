@@ -24,12 +24,19 @@ older branches.
 Slapss is a sandboxed macOS app with no server component. Its attack surface is
 small and worth stating plainly:
 
-- **Entitlements** are limited to app sandbox, outbound network client,
-  calendar access, and Apple events (`slapss/slapss.entitlements`). Verify against
-  a shipped build with `codesign -d --entitlements :- /Applications/slapss.app`.
-  Builds up to 2.0.0 additionally carried user-selected read-only file access,
-  injected by the `ENABLE_USER_SELECTED_FILES` build setting and used by no code
-  path; 2.0.1 removes it. A locally built copy also carries
+- **Sandboxing.** This source tree is **not** sandboxed (`ENABLE_APP_SANDBOX =
+  NO`); the Mac App Store build is. The App Sandbox blocks Apple events to
+  ordinary running applications — a sandboxed build gets `-600 procNotFound`
+  addressing Safari and macOS never presents the Automation prompt — so the
+  "Joining meetings" preferences cannot function under it. The trade is explicit:
+  the feature works, and the entitlements below no longer act as an enforced
+  confinement. Prefer the App Store build if you want the sandbox.
+- **Entitlements** are outbound network client, calendar access, and Apple events
+  (`slapss/slapss.entitlements`). Verify against a build with
+  `codesign -d --entitlements :- /Applications/slapss.app`. Builds up to 2.0.0
+  additionally carried user-selected read-only file access, injected by the
+  `ENABLE_USER_SELECTED_FILES` build setting and used by no code path; 2.0.1
+  removes it. A locally built copy also carries
   `com.apple.security.get-task-allow` (debugger attach), which App Store builds do
   not.
 - **Apple events** (`com.apple.security.automation.apple-events`) are sent only by
