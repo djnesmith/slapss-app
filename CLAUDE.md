@@ -232,8 +232,8 @@ story: it silently kills the feature, with no error the user can see.
 **When running the A/B, launch through LaunchServices (`open -a`), not the binary
 directly.** TCC attributes an Apple event to the *responsible process*; a binary
 started from a terminal is attributed to the terminal, so the first attempt
-recorded `com.googlecode.iterm2 -> com.apple.Safari` and proved nothing about
-slapss. Launched with `open -a`, slapss got its own grant.
+recorded the *terminal's* own bundle id against `com.apple.Safari` and proved
+nothing about slapss. Launched with `open -a`, slapss got its own grant.
 
 **A sandboxed and an unsandboxed build read different preference domains.** The
 sandboxed app reads `~/Library/Containers/com.cancetin.slapss/Data/Library/Preferences/`,

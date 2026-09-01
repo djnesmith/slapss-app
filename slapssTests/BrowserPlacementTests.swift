@@ -349,6 +349,83 @@ final class NewWindowScriptTests: XCTestCase {
     }
 }
 
+/// The per-calendar Google `authuser` read path. Cover added when moving off the
+/// App Sandbox changed which UserDefaults domain the app reads — a sandboxed
+/// build reads its container copy, an unsandboxed one reads
+/// ~/Library/Preferences — so existing mappings have to be migrated across, and
+/// nothing asserted that a migrated dictionary is actually honoured once it
+/// lands.
+final class AuthUserByCalendarTests: XCTestCase {
+
+    /// Four calendars all mapped to the same Google account index — the shape a
+    /// multi-account setup actually produces, where every work calendar wants
+    /// the same non-default account. Synthetic identifiers: EventKit calendar
+    /// UUIDs are per-account values and there is no reason to publish real
+    /// ones, and the rules under test do not look at the id's content.
+    private static let mappings = [
+        "00000000-0000-4000-8000-00000000CA01": 2,
+        "00000000-0000-4000-8000-00000000CA02": 2,
+        "00000000-0000-4000-8000-00000000CA03": 2,
+        "00000000-0000-4000-8000-00000000CA04": 2,
+    ]
+
+    private var defaults: UserDefaults!
+    private var suiteName: String!
+
+    override func setUp() {
+        super.setUp()
+        suiteName = "slapss.tests.\(UUID().uuidString)"
+        defaults = UserDefaults(suiteName: suiteName)
+        defaults.set(Self.mappings, forKey: "slapss.authUserByCalendar")
+        defaults.set(true, forKey: "slapss.enableGoogleAuthUser")
+    }
+
+    override func tearDown() {
+        defaults.removePersistentDomain(forName: suiteName)
+        defaults = nil
+        suiteName = nil
+        super.tearDown()
+    }
+
+    func testEveryMappedCalendarResolvesToItsAccountIndex() {
+        let settings = AppSettings(defaults: defaults)
+
+        for (calendarID, expected) in Self.mappings {
+            XCTAssertEqual(settings.authUser(forCalendarID: calendarID), expected, calendarID)
+        }
+    }
+
+    /// The master switch gates the whole feature, so a stored mapping must not
+    /// leak through when it is off.
+    func testMasterSwitchOffSuppressesEveryMapping() {
+        defaults.set(false, forKey: "slapss.enableGoogleAuthUser")
+        let settings = AppSettings(defaults: defaults)
+
+        for calendarID in Self.mappings.keys {
+            XCTAssertNil(settings.authUser(forCalendarID: calendarID))
+        }
+    }
+
+    func testUnmappedAndNilCalendarsResolveToNil() {
+        let settings = AppSettings(defaults: defaults)
+
+        XCTAssertNil(settings.authUser(forCalendarID: "not-a-calendar"))
+        XCTAssertNil(settings.authUser(forCalendarID: nil))
+    }
+
+    /// Every calendar carrying a mapping must also be offered the picker, or the
+    /// value is set and unreachable — the exact shape of the bug 9b8e8d0 fixed.
+    func testEveryMappedCalendarIsOfferedThePicker() {
+        let offered = SettingsView.googleAuthUserCalendarIDs(
+            in: Self.mappings.keys.map { (id: $0, sourceTitle: "IN") }
+        )
+
+        for calendarID in Self.mappings.keys {
+            XCTAssertTrue(offered.contains(calendarID), calendarID)
+        }
+    }
+}
+
 final class AppleScriptLiteralTests: XCTestCase {
 
     func testPlainURLIsQuoted() {
