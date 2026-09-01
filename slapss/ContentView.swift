@@ -677,6 +677,14 @@ enum SystemSettingsOpener {
         guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Reminders") else { return }
         NSWorkspace.shared.open(url)
     }
+
+    /// Privacy & Security → Automation, where the per-app Apple-events grants
+    /// live. Used by the join-in-browser settings when the browser grant has
+    /// been refused.
+    static func openAutomationPrivacy() {
+        guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation") else { return }
+        NSWorkspace.shared.open(url)
+    }
 }
 
 // MARK: - Hero card (sticker)
@@ -1081,7 +1089,7 @@ private struct JoinButton: View {
             withAnimation(.easeOut(duration: 0.08)) { pressed = true }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
                 withAnimation(.easeOut(duration: 0.08)) { pressed = false }
-                MeetingURLOpener.open(url, authUser: authUser)
+                MeetingURLOpener.open(url, authUser: authUser, placement: settings.browserPlacement)
             }
         } label: {
             HStack(spacing: 6) {

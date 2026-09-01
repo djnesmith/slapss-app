@@ -44,6 +44,10 @@ Two repos:
 - `AppSettings.swift` — all `@Published` preferences + UserDefaults persistence
 - `PopoverVisibilityMonitor.swift` — NSWindow notification observer
 - `Theme.swift` — `AppTheme` (sunset/ocean/forest) + `AppTheme.Accents` color sets + `ThemeSwatchPicker` (shared by Settings and Onboarding)
+- `Calendar/MeetingURLOpener.swift` — the one entry point for opening a join link
+- `Calendar/BrowserPlacement.swift` — pure: the two join preferences, the browser family, and which combinations need the Automation grant
+- `Calendar/ScreenPlacement.swift` — pure: built-in-display selection and the AppKit → AppleScript coordinate conversion
+- `Calendar/BrowserWindowOpener.swift` — the only file that touches NSWorkspace launch arguments, NSScreen, and Apple events
 
 ---
 
@@ -167,6 +171,89 @@ non-distribution build so a debugger can attach. App Store builds don't have it.
 Both documents say so, because "I built it myself and I count four" is the obvious
 next message.
 
+**Superseded in part:** the entitlements file lists **four** as of the
+new-browser-window work. `com.apple.security.automation.apple-events` was added
+deliberately, and `README.md` / `SECURITY.md` were updated in the same change —
+the count in those documents is load-bearing (see above), so anything that adds
+or removes an entitlement has to move them too.
+
+### The Automation grant is the whole cost of the browser-window feature — keep it earned
+
+`BrowserPlacement.requiresAutomation(in:)` is the single place that decides
+whether the user gets asked for anything. The rules it encodes are not arbitrary:
+
+- Chromium takes `--new-window`, `--window-position` and `--window-size` as launch
+  arguments, so **new window + built-in display on Chromium costs no permission at
+  all**. Firefox takes `-new-window` (one dash) but has no geometry flags.
+- Safari has no new-window flag. `make new document` via Apple events is the only
+  route, which is why Safari — the case that had to work — needs the grant for
+  either preference on its own.
+- Moving a window that *already exists* is always an Apple event. No browser can
+  position a window it isn't creating. So "built-in display" **without** "new
+  window" needs the grant even on Chromium.
+- **Firefox is never asked for the grant at all.** It ships essentially no
+  AppleScript dictionary and has no scriptable `bounds`, so the event would cost a
+  permission and then fail. `supportsWindowPlacementScript` is false for it,
+  `isFullySupported(in:)` returns false, and Settings says the browser can't be
+  positioned instead. Positioning Firefox would need the Accessibility API — a
+  different, heavier grant this feature deliberately does not ask for.
+
+Two consequences worth not relearning:
+
+- The Settings toggles ask about the placement that would *result* from the flip,
+  not the one being flipped (`SettingsView.placement(enabling:)`). Turning on "new
+  window" while "built-in display" is already on can *remove* the need for the
+  grant on Chromium.
+- Permission state is read with `AEDeterminePermissionToAutomateTarget(…,
+  askUserIfNeeded: false)`. That variant never raises the system prompt, which is
+  what makes it safe to call every time the Settings window appears. Pass `true`
+  and merely opening Settings would ask the user for Automation access.
+
+Every failure path — no grant, grant refused, browser launch failed, script error
+— ends in a plain `NSWorkspace.open`, and exactly one of them runs: the URL is
+opened in the script's completion handler, never both by the script and by the
+fallback.
+
+**Apple events must never be sent on the main thread here.**
+`NSAppleScript.executeAndReturnError` is synchronous and exposes no timeout, and
+the *first* send is also when macOS presents the Automation consent dialog. A join
+happens while the full-screen overlay is up — a borderless `.screenSaver`-level
+window covering every display — so blocking main freezes the overlay with no way
+out: ESC and Return are handled on that run loop, and so are `AlertScheduler`'s
+timers and watchdog. `BrowserWindowOpener.runScript` therefore sends on a private
+serial queue and calls back on the main actor. This is the same family of problem
+as the "Overlay controls that expand must stay inside the overlay window" gotcha
+above.
+
+### AppleScript window `bounds` and `NSScreen.frame` disagree on origin *and* y direction
+
+AppleScript's window `bounds` (and Chromium's `--window-position`, which uses the
+same space) measure from the **primary display's top-left**, y growing downward.
+`NSScreen.frame` measures from the **primary display's bottom-left**, y growing
+upward. A display arranged below the primary one therefore has a negative
+`frame.origin.y` in AppKit and a large positive `top` in AppleScript.
+
+Measured on the development machine 2026-09-01: the Dell U4320Q is primary at
+`(0, 0, 3840, 2160)` and the built-in panel sits to its **right and raised**, at
+`frame (3840, 228, 1728, 1117)` / `visibleFrame (3840, 228, 1728, 1085)`. The
+shipped code turns that into `{3840, 847, 5568, 1932}` — `top = 2160 - (228 +
+1085)`. Both axes are non-zero, which is why
+`testRealMeasuredTwoDisplayArrangement` exists alongside the synthetic fixtures: a
+conversion that silently dropped one axis still passes the others. Flipping the
+sign parks the window off-screen, or on the very monitor the user turned the
+preference on to avoid. The conversion is `ScreenPlacement.windowBounds(for:
+primaryFrame:)`, kept pure and covered by `slapssTests/ScreenPlacementTests.swift`
+against that real arrangement plus side-by-side, single-display and Dock-inset
+cases.
+
+Two related details:
+
+- The anchor is the **primary** display (the one whose frame origin is `.zero`),
+  **not** `NSScreen.main` — `main` is the screen with the key window, so it moves
+  as the user clicks around and is nil when nothing is key.
+- The built-in panel is identified with `CGDisplayIsBuiltin` on the screen's
+  `NSScreenNumber`, which is public API and needs no permission.
+
 
 ## Versioning
 
@@ -181,6 +268,7 @@ next message.
 
 Brief record of what shipped in each version. Full user-facing changelog is in `slapss-web/changelog.html`.
 
+- **Unreleased (version number is Can's call; `MARKETING_VERSION` deliberately left at 2.0.1)** — Two independent, default-off preferences for how a join link opens: `openMeetingsInNewWindow` and `openMeetingsOnBuiltInDisplay` (`AppSettings`, new "Joining meetings" section in `SettingsView.generalTab`, 9 new keys ×6 languages incl. `general.cancel`). Resolved into one `BrowserPlacement` value and threaded through `MeetingURLOpener.open(_:authUser:placement:)`, whose new third parameter defaults to `.browserDecides` — i.e. the old `NSWorkspace.open`, so nothing changes until a user opts in. All three join call sites pass it: `ContentView.JoinButton`, `AlertScheduler.handleJoin`, and `AppDelegate`'s notification Join action, which has no SwiftUI environment and so reads `AppSettings.persistedBrowserPlacement()` straight from UserDefaults (same constraint that makes it build its own `LocalizationManager`). The `msteams://` branch is untouched on purpose: a native Teams window is not a browser window. — Design deliberately splits pure from impure: `BrowserPlacement` + `BrowserFamily` (which browser, which route, does it cost a permission) and `ScreenPlacement` (built-in selection, coordinate conversion) are `nonisolated` value logic with 38 unit tests; `BrowserWindowOpener` is the only file touching NSWorkspace/NSScreen/NSAppleScript. Browser is detected via `urlForApplication(toOpen:)` on an https probe and classified by bundle-identifier **prefix**, so beta/canary/nightly channels and Chromium forks (Brave, Edge, Vivaldi, Opera, Arc) resolve without an exact-match list — Safari is never hardcoded. — **New TCC surface, and the first in this app:** `com.apple.security.automation.apple-events` added to `slapss.entitlements` plus `NSAppleEventsUsageDescription` in `Info.plist`. See the two new gotchas for why it can't be avoided for Safari and why Chromium avoids it entirely. `README.md` and `SECURITY.md` moved from "three entitlements" to four in the same change — that count is load-bearing (2.0.1's whole point). The grant is requested at first use by the user, not at launch: switching a toggle on raises an in-app explanation alert first, and the OS prompt follows on the next join. **This is a Mac App Store app, so the entitlement is a review-risk decision, not just a code change — Can's call before submission.** — **Test target added** (`slapssTests`, `com.apple.product-type.bundle.unit-test`, hosted by the app, wired into the shared scheme). The same target already exists on the unmerged local branch `diagnostic-overlay-logging`; the pbxproj objects here are byte-identical to that branch's on purpose, so whichever lands second merges instead of producing two targets. — Also added `SystemSettingsOpener.openAutomationPrivacy()` for the denied state, and a CI `Test` lane in `.github/workflows/build.yml` so the new target actually runs. — **Self-review pass changed four things in the code, not just the prose:** Apple events moved off the main thread (see the gotcha — this was a frozen-overlay bug, not a style point); the URL is now opened exactly once, in the script completion, so a failed script can't double-open or silently skip; `open()` bails out when the browser's bundle identifier can't be read, so the plain path runs instead of reporting success for work that never happens; and Firefox stopped being asked for a grant it can't use. Remaining known gap, deliberately left: `NSWorkspace.openApplication` with `createsNewApplicationInstance` + `arguments` from inside the sandbox is **unverified** — it needs a Chromium browser, and the development machine's default is Safari, so it is off the critical path (Can's call, 2026-09-01). — **Validated on real hardware 2026-09-01, ad-hoc-signed Release build installed over `/Applications/slapss.app`:** `codesign -d --entitlements :-` reports the four from the entitlements file plus `get-task-allow` (local-build only, as `README.md` already documents); `files.user-selected.read-only` is gone, confirming 2.0.1's `ENABLE_USER_SELECTED_FILES = NO`. The `kTCCServiceCalendar` grant **survived** replacing the bundle — an ad-hoc identity does hold TCC grants across a rebuild here, which is worth knowing before anyone assumes a local build needs re-authorising. `ScreenPlacement` was run against the live `NSScreen` arrangement (see the coordinate gotcha for the numbers) and produced the correct built-in-display bounds. **Not** validated: the Safari Apple event itself — sending it needs a click on Join, which cannot be scripted without the Accessibility grant this feature deliberately avoids. **`slapss-web/changelog.html` NOT mirrored** — separate private repo, not present in this worktree; owed before release.
 - **v2.0.1 (Can's call: patch bump)** — **User-reported bug (email, 2026-08-25):** a Microsoft 365 user who had not granted macOS Calendar access saw the menu bar counting down to the next meeting, but the popover showed the red "Calendar access denied" state instead of the agenda. `MenuBarContentView.regularView` switched on `aggregator.permissionState`, which is EventKit-only, while the menu-bar label reads `scheduler.currentMenuBarMeeting` off the merged event list — that asymmetry is why the two surfaces disagreed and why it read as "the agenda is broken" rather than "a permission is missing". The gate now short-circuits on `aggregator.isGraphSignedIn`, the same rule `OnboardingView.canFinishOnboarding` has had since 1.8. Settings needed no change: its denied state, with the "Open System Settings" button, was already scoped to the macOS-calendars section, and that remains the place to fix the permission. `isGraphSignedIn` is a new `@Published` on the aggregator mirroring `graph.$state` through Combine `assign(to:)`, **not** folded into `graph.onChange` — that callback fires only on completed sign-in and sign-out, so an expired-token `.error` would leave the flag stuck at `true` (see the nested-ObservableObject gotcha). — **Second fix, in the same file:** `GraphSource.startPollTimer` was the codebase's last `Timer.scheduledTimer` (`.default` runloop mode, App Nap-throttled); converted to `Timer(...)` + `RunLoop.main.add(_:forMode: .common)`. Highest impact for Microsoft 365-only users, whose EventKit safety-net poll never starts at all. The file header also claimed a 5-minute cadence while the timer has been 2 minutes since it was written — corrected. — **Third change:** `ENABLE_USER_SELECTED_FILES = NO` in both configurations, dropping the unused fourth entitlement from the shipped binary (see the entitlement gotcha); `README.md` and `SECURITY.md` are back to three. — No user-facing string changed, so `Translations.swift` is untouched and the six-language rule doesn't apply this time. **Validation:** `xcodebuild build` succeeded (local Xcode 27 beta; CI runs macos-26), and an ad-hoc-signed **Release** build was inspected with `codesign -d --entitlements :-` — three entitlements, as documented. The popover fix is **not** hand-validated: it needs a Mac with a signed-in Microsoft 365 account *and* calendar access denied, which this machine can't produce. Can to confirm before submitting. `MARKETING_VERSION` 2.0.0 → 2.0.1 (both configurations); `CURRENT_PROJECT_VERSION` untouched, Xcode Cloud owns it.
 - **v2.0.0 (Can's call: major bump marks the open-source release)** — **Bug fix, found in pre-release user feedback:** recurring meetings stopped alerting permanently after their overlay was dismissed once. `EKEvent.eventIdentifier` is shared by every occurrence of a series, so the single `dismissedIDs` entry suppressed the whole series while the menu-bar countdown kept rendering normally (it reads the aggregator, which has no dismissal filter) — which is exactly why it read as "the first meeting of each day never fires" rather than as a dismissal problem. `toMeetingEvent` now qualifies the id with the occurrence start epoch; `eventKitIdentifier` strips it back off for the `ical://` scheme. Same fix repairs snooze and menu-bar-mute leaking across occurrences. Graph unaffected. — Repository published at `theshiver/slapss-app` under Apache-2.0; see `RELEASING.md` for the process that now spans four surfaces. Only code change is a `settings.about.sourceCode` row in `SettingsView.aboutTab`, matching the existing website/support `LabeledContent` + `.buttonStyle(.link)` pattern, localized in all 6 languages. Placed in About deliberately: that tab is where a user goes to check a privacy claim, and onboarding is for setup, not links. This also keeps 2.0.0 from being a pure label — without it the build would be byte-identical to 1.8.2. `MARKETING_VERSION` 1.8.2 → 2.0.0 (both configurations); `CURRENT_PROJECT_VERSION` untouched on purpose, Xcode Cloud owns it (see Versioning).
 - **v1.8.2** — Fixed the full-screen alert's Snooze button appearing to do nothing on macOS 27 beta 3. The duration picker no longer uses SwiftUI `.popover` (a separate system-managed window that can be suppressed behind the app's borderless `.screenSaver`-level overlay); it is now an in-window dropdown rendered inside `AlertView`. Snooze scheduling behavior is unchanged. Fixed the macOS calendar catalog staying stale after a Calendar account was removed and re-added while Slapss remained open: `CalendarAggregator` now fingerprints and refreshes the EventKit catalog on store-change notifications, the 30-second safety-net, Settings appearance, and app reactivation. Permission changes are re-read on the same paths. Calendar-selection persistence is intentionally untouched: empty still means all calendars, while an explicit non-empty ID set remains explicit even if an account re-add changes identifiers, so newly discovered calendars are not silently enabled. Catalog publishing remains deduplicated to avoid unnecessary SwiftUI/scheduler work; the repeating safety-net timer now runs in `.common` mode.

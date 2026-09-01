@@ -5,6 +5,16 @@ All notable user-facing changes to Slapss.
 This file is the source of truth for release notes. The public web changelog and
 GitHub Releases are generated from it.
 
+## Unreleased
+
+<!-- Version number is Can's call; this section is not a release until he picks one. -->
+
+- New: **Open meetings in a new browser window** (Settings → General → Joining meetings). Off by default. Instead of taking over a tab in whatever window you were reading, a join link gets a window of its own.
+- New: **Always on the built-in display** (same place, also off by default). Puts the meeting window on your laptop's own screen instead of an external monitor, sized to fill it. If the laptop screen isn't part of your current arrangement — lid closed, or the display unplugged — the meeting goes to your main display instead.
+- Depending on which browser you use, macOS may ask whether Slapss can control it the first time you switch one of these on. Chrome, Edge, Brave, Vivaldi, Opera and Arc need no permission for a new window. Safari has no other way to be told "new window", and no browser can be told to move a window it already has, so those cases do ask. Slapss explains before macOS does, and if you say no, meetings still open exactly as before — you just don't get the placement. You can change your mind later in System Settings → Privacy & Security → Automation.
+- Firefox is the one exception: it can open a new window but can't be positioned, and Settings says so rather than asking you for a permission that wouldn't help.
+- Microsoft Teams meetings are unaffected: those open in the Teams app, not a browser window.
+
 ## v2.0.1 — August 25, 2026
 
 - Fixed: if you use Slapss with a Microsoft 365 account and haven't given it access to the macOS Calendar app, the menu bar showed your next meeting but opening it said "Calendar access denied" instead of showing your agenda. Your agenda now appears whenever a Microsoft 365 account is signed in. Access to the macOS Calendar app is optional, and always was.

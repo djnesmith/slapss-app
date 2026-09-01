@@ -46,3 +46,20 @@ jobs:
             | { command -v xcbeautify >/dev/null && xcbeautify || cat; }
         env:
           NSUnbufferedIO: YES
+
+      # The unit tests cover pure logic only — no window server, no second
+      # display, no TCC grant — so they run on the same unsigned build.
+      - name: Test
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project slapss.xcodeproj \
+            -scheme slapss \
+            -destination 'platform=macOS' \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            DEVELOPMENT_TEAM="" \
+            | { command -v xcbeautify >/dev/null && xcbeautify || cat; }
+        env:
+          NSUnbufferedIO: YES

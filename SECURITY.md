@@ -24,13 +24,24 @@ older branches.
 Slapss is a sandboxed macOS app with no server component. Its attack surface is
 small and worth stating plainly:
 
-- **Entitlements** are limited to app sandbox, outbound network client, and
-  calendar access (`slapss/slapss.entitlements`). Verify against a shipped build
-  with `codesign -d --entitlements :- /Applications/slapss.app`. Builds up to
-  2.0.0 additionally carried user-selected read-only file access, injected by the
-  `ENABLE_USER_SELECTED_FILES` build setting and used by no code path; 2.0.1
-  removes it. A locally built copy also carries `com.apple.security.get-task-allow`
-  (debugger attach), which App Store builds do not.
+- **Entitlements** are limited to app sandbox, outbound network client,
+  calendar access, and Apple events (`slapss/slapss.entitlements`). Verify against
+  a shipped build with `codesign -d --entitlements :- /Applications/slapss.app`.
+  Builds up to 2.0.0 additionally carried user-selected read-only file access,
+  injected by the `ENABLE_USER_SELECTED_FILES` build setting and used by no code
+  path; 2.0.1 removes it. A locally built copy also carries
+  `com.apple.security.get-task-allow` (debugger attach), which App Store builds do
+  not.
+- **Apple events** (`com.apple.security.automation.apple-events`) are sent only by
+  the two opt-in preferences under Settings → General → Joining meetings, and only
+  to the browser registered as the default handler for `https`. Both preferences
+  ship off; with both off, `BrowserWindowOpener.open` returns immediately and no
+  event is sent. Nor is one sent for a Chromium-based default browser opening a
+  new window — that goes through launch arguments instead. The events themselves
+  are `activate`, `make new document` and `set bounds of front window`: they open
+  and position a window and read nothing back. macOS gates this behind a separate
+  per-target Automation grant that the user is asked for on first use, and
+  refusing it degrades to a plain `NSWorkspace.open`.
 - **Network egress** goes to Microsoft Graph and Microsoft identity endpoints
   only, and only when the user has signed in to a Microsoft 365 account.
 - **Credentials.** Microsoft OAuth tokens are stored in the system keychain. The

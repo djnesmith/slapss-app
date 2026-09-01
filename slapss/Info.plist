@@ -27,5 +27,15 @@
 	<string>Slapss reads your calendar events to show upcoming meetings and alert you before they start.</string>
 	<key>NSRemindersUsageDescription</key>
 	<string>Slapss reads today's reminders to surface them in the menu bar popover alongside your meetings.</string>
+	<!-- Automation (Apple events) is only used by the two opt-in settings in
+	     Settings > General > Joining meetings: opening a join link in a new
+	     browser window, and placing that window on the built-in display.
+	     Safari has no command-line equivalent, and no browser can be asked to
+	     move an existing window any other way. macOS asks for this the first
+	     time an event is sent, i.e. on the first join after the user turns a
+	     setting on; refusing it only costs the window placement, the meeting
+	     still opens. -->
+	<key>NSAppleEventsUsageDescription</key>
+	<string>Slapss controls your web browser so a meeting can open in a new window and appear on your built-in display. This is only used when you turn on those options in Slapss settings.</string>
 </dict>
 </plist>

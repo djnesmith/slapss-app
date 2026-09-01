@@ -521,7 +521,11 @@ final class AlertScheduler: ObservableObject {
     func handleJoin(_ meeting: MeetingEvent) {
         if let url = meeting.joinURL {
             let authUser = settings?.authUser(forCalendarID: meeting.calendarID)
-            MeetingURLOpener.open(url, authUser: authUser)
+            MeetingURLOpener.open(
+                url,
+                authUser: authUser,
+                placement: settings?.browserPlacement ?? .browserDecides
+            )
         }
         dismiss(meeting)
     }

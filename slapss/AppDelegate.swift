@@ -77,7 +77,11 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
            let urlString = response.notification.request.content.userInfo[NotificationManager.joinURLUserInfoKey] as? String,
            let url = URL(string: urlString) {
             Task { @MainActor in
-                MeetingURLOpener.open(url)
+                // No AppSettings instance here — AppDelegate runs before any
+                // SwiftUI environment exists, same as the LocalizationManager
+                // above — so the preferences are read straight from
+                // UserDefaults.
+                MeetingURLOpener.open(url, placement: AppSettings.persistedBrowserPlacement())
             }
         }
         completionHandler()

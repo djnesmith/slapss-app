@@ -27,6 +27,8 @@ final class AppSettings: ObservableObject {
         static let showReminderOverlay = "slapss.showReminderOverlay"
         static let onlyAcceptedMeetings = "slapss.onlyAcceptedMeetings"
         static let theme = "slapss.theme"
+        static let openMeetingsInNewWindow = "slapss.openMeetingsInNewWindow"
+        static let openMeetingsOnBuiltInDisplay = "slapss.openMeetingsOnBuiltInDisplay"
     }
 
     private let defaults: UserDefaults
@@ -136,6 +138,22 @@ final class AppSettings: ObservableObject {
         didSet { defaults.set(theme.rawValue, forKey: Key.theme) }
     }
 
+    /// When true, a join link opens in a new browser window instead of reusing
+    /// an existing window or tab. Default: false — existing users keep the
+    /// browser's own behaviour until they opt in.
+    @Published var openMeetingsInNewWindow: Bool {
+        didSet { defaults.set(openMeetingsInNewWindow, forKey: Key.openMeetingsInNewWindow) }
+    }
+
+    /// When true, the browser window holding the meeting is placed on the
+    /// laptop's built-in display. Independent of
+    /// `openMeetingsInNewWindow` — on its own it moves whichever window the
+    /// browser reused. Falls back to the primary display in clamshell mode.
+    /// Default: false.
+    @Published var openMeetingsOnBuiltInDisplay: Bool {
+        didSet { defaults.set(openMeetingsOnBuiltInDisplay, forKey: Key.openMeetingsOnBuiltInDisplay) }
+    }
+
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
 
@@ -203,6 +221,11 @@ final class AppSettings: ObservableObject {
         // unrecognized stored values.
         self.theme = defaults.string(forKey: Key.theme)
             .flatMap(AppTheme.init(rawValue:)) ?? .sunset
+
+        // Both default to false (UserDefaults.bool returns false for a missing
+        // key), so nothing about opening a meeting changes until the user asks.
+        self.openMeetingsInNewWindow = defaults.bool(forKey: Key.openMeetingsInNewWindow)
+        self.openMeetingsOnBuiltInDisplay = defaults.bool(forKey: Key.openMeetingsOnBuiltInDisplay)
     }
 
     /// Effective Google `authuser` index for a meeting's calendar, honoring the
@@ -212,5 +235,25 @@ final class AppSettings: ObservableObject {
     func authUser(forCalendarID calendarID: String?) -> Int? {
         guard enableGoogleAuthUser, let calendarID else { return nil }
         return authUserByCalendar[calendarID]
+    }
+
+    /// The two browser-window preferences as one value to hand to
+    /// `MeetingURLOpener.open(_:authUser:placement:)`.
+    var browserPlacement: BrowserPlacement {
+        BrowserPlacement(
+            opensNewWindow: openMeetingsInNewWindow,
+            forcesBuiltInDisplay: openMeetingsOnBuiltInDisplay
+        )
+    }
+
+    /// The same value read straight out of UserDefaults, for callers with no
+    /// `AppSettings` instance to consult. `AppDelegate` handles the
+    /// notification "Join" action before any SwiftUI environment exists — the
+    /// same constraint that makes it build its own `LocalizationManager`.
+    static func persistedBrowserPlacement(defaults: UserDefaults = .standard) -> BrowserPlacement {
+        BrowserPlacement(
+            opensNewWindow: defaults.bool(forKey: Key.openMeetingsInNewWindow),
+            forcesBuiltInDisplay: defaults.bool(forKey: Key.openMeetingsOnBuiltInDisplay)
+        )
     }
 }

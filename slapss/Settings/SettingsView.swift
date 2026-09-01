@@ -19,6 +19,20 @@ struct SettingsView: View {
 
     @State private var launchAtLogin: Bool = LaunchAtLoginManager.isEnabled
 
+    /// The join preference the user just switched on that still needs the
+    /// Automation grant. Non-nil while the explanation alert is up; the
+    /// preference is only written if the user chooses Continue.
+    @State private var joiningNeedingPermission: JoiningPreference?
+    /// Read with `AEDeterminePermissionToAutomateTarget(…, askUserIfNeeded:
+    /// false)`, so opening Settings never asks the user for anything. The real
+    /// prompt comes from macOS on the first join after they opt in.
+    @State private var automationStatus: BrowserWindowOpener.AutomationStatus = .undetermined
+    /// The default browser, resolved once per appearance rather than per body
+    /// pass — identifying it costs a LaunchServices lookup plus reading another
+    /// app's bundle off disk.
+    @State private var browserFamily: BrowserFamily = .unknown
+    @State private var browserName: String = ""
+
     var body: some View {
         TabView {
             generalTab
@@ -33,9 +47,14 @@ struct SettingsView: View {
         .frame(width: 480, height: 380)
         .task {
             aggregator.refreshSourcesIfNecessary()
+            refreshBrowserState()
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             aggregator.refreshSourcesIfNecessary()
+            // Picks up a grant (or a revocation) the user just made in System
+            // Settings, or a change of default browser, without needing the
+            // window reopened.
+            refreshBrowserState()
         }
     }
 
@@ -194,6 +213,37 @@ struct SettingsView: View {
                 }
             }
 
+            Section(lm["settings.section.joining"]) {
+                Toggle(lm["settings.joining.newWindow"], isOn: joiningBinding(.newWindow))
+                Toggle(lm["settings.joining.builtInDisplay"], isOn: joiningBinding(.builtInDisplay))
+                Text(lm["settings.joining.caption"])
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                // Only shown once a preference that needs the grant is on and
+                // the grant is missing — otherwise the row is noise. Meetings
+                // still open in this state, so the wording says so.
+                if joiningNeedsAutomation, automationStatus == .denied {
+                    HStack(spacing: 8) {
+                        Text(lm.t("settings.joining.permissionDenied", browserDisplayName))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Spacer()
+                        Button(lm["general.openSystemSettings"]) {
+                            SystemSettingsOpener.openAutomationPrivacy()
+                        }
+                        .controlSize(.small)
+                    }
+                }
+                if joiningUnsupported {
+                    Text(lm.t("settings.joining.unsupportedBrowser", browserDisplayName))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
             Section(lm["settings.section.googleMeet"]) {
                 Toggle(lm["settings.googleMeet.perCalendar"], isOn: $settings.enableGoogleAuthUser)
                 Text(lm["settings.googleMeet.description"])
@@ -212,6 +262,107 @@ struct SettingsView: View {
         }
         .formStyle(.grouped)
         .padding()
+        .alert(
+            lm.t("settings.joining.permissionTitle", browserDisplayName),
+            isPresented: Binding(
+                get: { joiningNeedingPermission != nil },
+                set: { if !$0 { joiningNeedingPermission = nil } }
+            )
+        ) {
+            Button(lm["general.continue"]) {
+                if let preference = joiningNeedingPermission { setJoining(preference, true) }
+                joiningNeedingPermission = nil
+            }
+            Button(lm["general.cancel"], role: .cancel) {
+                joiningNeedingPermission = nil
+            }
+        } message: {
+            Text(lm.t("settings.joining.permissionBody", browserDisplayName))
+        }
+    }
+
+    // MARK: - Joining meetings
+
+    /// The two join-in-browser preferences. Named rather than passed as a
+    /// key path so the explanation alert can hold "which toggle is pending"
+    /// in a single piece of `@State`.
+    private enum JoiningPreference {
+        case newWindow
+        case builtInDisplay
+    }
+
+    private func refreshBrowserState() {
+        automationStatus = BrowserWindowOpener.automationStatus()
+        browserFamily = BrowserWindowOpener.defaultBrowserFamily()
+        browserName = BrowserWindowOpener.defaultBrowserDisplayName() ?? ""
+    }
+
+    private var browserDisplayName: String {
+        browserName.isEmpty ? lm["settings.joining.browserFallback"] : browserName
+    }
+
+    /// Whether the preferences as they stand need the Automation grant. Drives
+    /// the denied-state row only — the toggles themselves ask about the
+    /// placement they would produce, not the current one.
+    private var joiningNeedsAutomation: Bool {
+        settings.browserPlacement.requiresAutomation(in: browserFamily)
+    }
+
+    /// True when a preference is on that this browser cannot honour — today
+    /// only Firefox, which has no scriptable window `bounds`. Saying so beats
+    /// leaving a toggle that looks active and never does anything.
+    private var joiningUnsupported: Bool {
+        !settings.browserPlacement.isFullySupported(in: browserFamily)
+    }
+
+    private func joiningValue(_ preference: JoiningPreference) -> Bool {
+        switch preference {
+        case .newWindow: return settings.openMeetingsInNewWindow
+        case .builtInDisplay: return settings.openMeetingsOnBuiltInDisplay
+        }
+    }
+
+    private func setJoining(_ preference: JoiningPreference, _ value: Bool) {
+        switch preference {
+        case .newWindow: settings.openMeetingsInNewWindow = value
+        case .builtInDisplay: settings.openMeetingsOnBuiltInDisplay = value
+        }
+    }
+
+    /// The placement that would result from switching `preference` on, used to
+    /// decide whether the grant is needed *before* writing the preference.
+    /// The two interact: with Chromium, "new window" plus "built-in display"
+    /// needs no permission, while "built-in display" alone does.
+    private func placement(enabling preference: JoiningPreference) -> BrowserPlacement {
+        var placement = settings.browserPlacement
+        switch preference {
+        case .newWindow: placement.opensNewWindow = true
+        case .builtInDisplay: placement.forcesBuiltInDisplay = true
+        }
+        return placement
+    }
+
+    /// Switching a preference off is immediate. Switching one on that needs
+    /// Apple events raises the in-app explanation first, so the system's own
+    /// Automation prompt (which arrives later, on the first join) isn't the
+    /// first the user hears of it.
+    private func joiningBinding(_ preference: JoiningPreference) -> Binding<Bool> {
+        Binding(
+            get: { joiningValue(preference) },
+            set: { newValue in
+                guard newValue else {
+                    setJoining(preference, false)
+                    return
+                }
+                let needsGrant = placement(enabling: preference)
+                    .requiresAutomation(in: browserFamily)
+                if needsGrant, automationStatus != .granted {
+                    joiningNeedingPermission = preference
+                } else {
+                    setJoining(preference, true)
+                }
+            }
+        )
     }
 
     /// Split out from `generalTab` in v1.8 — the General tab had grown to 8

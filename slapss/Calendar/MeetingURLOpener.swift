@@ -12,6 +12,8 @@
 //   - Zoom / Google Meet / Webex / others: their https join pages already
 //     redirect to the native app on launch via their own custom URL schemes,
 //     so opening the original URL is sufficient.
+//   - When the user has turned on either browser-window preference, the https
+//     open is handed to `BrowserWindowOpener` instead. See `BrowserPlacement`.
 //
 
 import AppKit
@@ -23,7 +25,10 @@ enum MeetingURLOpener {
     ///   calendar, if the user configured one. When set and the URL is a
     ///   `meet.google.com` link, `?authuser=N` is applied so the meeting opens
     ///   in the matching Google account. Ignored for non-Meet URLs.
-    static func open(_ url: URL, authUser: Int? = nil) {
+    /// - Parameter placement: the user's new-window / built-in-display
+    ///   preferences. Defaults to `.browserDecides`, which is the plain
+    ///   `NSWorkspace.open` this method has always done.
+    static func open(_ url: URL, authUser: Int? = nil, placement: BrowserPlacement = .browserDecides) {
         let target = applyAuthUserIfNeeded(url, authUser: authUser)
         let urlString = target.absoluteString
 
@@ -35,6 +40,11 @@ enum MeetingURLOpener {
                 return
             }
         }
+
+        // Placement is a browser-window concern, so it deliberately does not
+        // apply to the msteams:// branch above — a native Teams window is not
+        // a browser window and has no URL scheme for placing it.
+        if BrowserWindowOpener.open(target, placement: placement) { return }
 
         NSWorkspace.shared.open(target)
     }

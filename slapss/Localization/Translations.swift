@@ -15,6 +15,7 @@ extension LocalizationManager {
         // General
         "general.off":                              "Off",
         "general.continue":                         "Continue",
+        "general.cancel":                           "Cancel",
         "general.today":                            "Today, %@",
 
         // Alert — status labels
@@ -74,6 +75,17 @@ extension LocalizationManager {
         "settings.alert.early.minutesFormat":       "%d minutes before",
         "settings.section.menuBar":                 "Menu bar",
         "settings.menuBar.showMeeting":             "Show the next meeting in the menu bar",
+
+        // Settings — joining meetings (browser window placement)
+        "settings.section.joining":                 "Joining meetings",
+        "settings.joining.newWindow":               "Open meetings in a new browser window",
+        "settings.joining.builtInDisplay":          "Always on the built-in display",
+        "settings.joining.caption":                 "Both are off by default. “Always on the built-in display” puts the meeting on your laptop’s own screen instead of an external monitor, and falls back to your main display when the laptop screen isn’t part of the arrangement.",
+        "settings.joining.browserFallback":         "your browser",
+        "settings.joining.permissionTitle":         "Slapss needs permission to control %@",
+        "settings.joining.permissionBody":          "macOS will ask you to allow this the first time you join a meeting. Slapss uses it only to open the meeting window and place it — nothing else. If you decline, meetings still open, just wherever %@ puts them.",
+        "settings.joining.permissionDenied":        "Slapss isn’t allowed to control %@, so meeting windows open wherever it puts them.",
+        "settings.joining.unsupportedBrowser":      "Slapss can’t position %@’s windows, so meetings open on whatever display it chooses. The rest of your settings still apply.",
         "settings.section.googleMeet":              "Google Meet",
         "settings.googleMeet.perCalendar":          "Choose a Google account per calendar",
         "settings.googleMeet.description":          "For people signed into more than one Google account. When on, the Calendars tab lets you pick which account opens each calendar's Google Meet links.",
@@ -201,6 +213,7 @@ extension LocalizationManager {
     static let tr: [String: String] = [
         "general.off":                              "Kapalı",
         "general.continue":                         "Devam",
+        "general.cancel":                           "İptal",
         "general.today":                            "Bugün, %@",
 
         "alert.status.inMinutes":                   "%d dk içinde",
@@ -254,6 +267,17 @@ extension LocalizationManager {
         "settings.alert.early.minutesFormat":       "%d dakika önce",
         "settings.section.menuBar":                 "Menü çubuğu",
         "settings.menuBar.showMeeting":             "Sonraki toplantıyı menü çubuğunda göster",
+
+        // Settings — joining meetings (browser window placement)
+        "settings.section.joining":                 "Toplantıya katılma",
+        "settings.joining.newWindow":               "Toplantıları yeni bir tarayıcı penceresinde aç",
+        "settings.joining.builtInDisplay":          "Her zaman dahili ekranda",
+        "settings.joining.caption":                 "İkisi de varsayılan olarak kapalıdır. “Her zaman dahili ekranda”, toplantıyı harici monitör yerine dizüstü bilgisayarınızın kendi ekranında açar; dizüstü ekranı düzenin parçası değilse ana ekrana döner.",
+        "settings.joining.browserFallback":         "tarayıcınız",
+        "settings.joining.permissionTitle":         "Slapss’in %@ uygulamasını denetlemesi için izin gerekiyor",
+        "settings.joining.permissionBody":          "macOS, bir toplantıya ilk kez katıldığınızda bunu onaylamanızı isteyecek. Slapss bunu yalnızca toplantı penceresini açmak ve yerleştirmek için kullanır, başka hiçbir şey için değil. İzin vermezseniz toplantılar yine açılır, sadece %@ nereye koyarsa orada açılır.",
+        "settings.joining.permissionDenied":        "Slapss’in %@ uygulamasını denetlemesine izin verilmiyor, bu yüzden toplantı pencereleri onun belirlediği yerde açılır.",
+        "settings.joining.unsupportedBrowser":      "Slapss, %@ pencerelerini konumlandıramıyor; bu yüzden toplantılar onun seçtiği ekranda açılır. Diğer ayarlarınız geçerli kalır.",
         "settings.section.googleMeet":              "Google Meet",
         "settings.googleMeet.perCalendar":          "Her takvim için Google hesabı seç",
         "settings.googleMeet.description":          "Birden fazla Google hesabıyla oturum açanlar için. Etkinleştirildiğinde, Takvimler sekmesi her takvimin Google Meet bağlantılarını hangi hesabın açacağını seçmenize izin verir.",
@@ -376,6 +400,7 @@ extension LocalizationManager {
     static let es: [String: String] = [
         "general.off":                              "Desactivado",
         "general.continue":                         "Continuar",
+        "general.cancel":                           "Cancelar",
         "general.today":                            "Hoy, %@",
 
         "alert.status.inMinutes":                   "en %d min",
@@ -429,6 +454,17 @@ extension LocalizationManager {
         "settings.alert.early.minutesFormat":       "%d minutos antes",
         "settings.section.menuBar":                 "Barra de menú",
         "settings.menuBar.showMeeting":             "Mostrar la próxima reunión en la barra de menú",
+
+        // Settings — joining meetings (browser window placement)
+        "settings.section.joining":                 "Unirse a reuniones",
+        "settings.joining.newWindow":               "Abrir las reuniones en una ventana nueva del navegador",
+        "settings.joining.builtInDisplay":          "Siempre en la pantalla integrada",
+        "settings.joining.caption":                 "Ambas están desactivadas por defecto. «Siempre en la pantalla integrada» abre la reunión en la pantalla del portátil en lugar de un monitor externo, y usa la pantalla principal cuando la del portátil no forma parte de la configuración.",
+        "settings.joining.browserFallback":         "tu navegador",
+        "settings.joining.permissionTitle":         "Slapss necesita permiso para controlar %@",
+        "settings.joining.permissionBody":          "macOS te pedirá permiso la primera vez que te unas a una reunión. Slapss solo lo usa para abrir la ventana de la reunión y colocarla, nada más. Si lo rechazas, las reuniones se seguirán abriendo, simplemente donde %@ las coloque.",
+        "settings.joining.permissionDenied":        "Slapss no tiene permiso para controlar %@, así que las ventanas de reunión se abren donde él las coloque.",
+        "settings.joining.unsupportedBrowser":      "Slapss no puede colocar las ventanas de %@, así que las reuniones se abren en la pantalla que él elija. El resto de tus ajustes siguen aplicándose.",
         "settings.section.googleMeet":              "Google Meet",
         "settings.googleMeet.perCalendar":          "Elegir cuenta de Google por calendario",
         "settings.googleMeet.description":          "Para personas con más de una cuenta de Google. Al activarlo, la pestaña Calendarios permite elegir qué cuenta abre los enlaces de Google Meet de cada calendario.",
@@ -551,6 +587,7 @@ extension LocalizationManager {
     static let de: [String: String] = [
         "general.off":                              "Aus",
         "general.continue":                         "Weiter",
+        "general.cancel":                           "Abbrechen",
         "general.today":                            "Heute, %@",
 
         "alert.status.inMinutes":                   "in %d Min.",
@@ -604,6 +641,17 @@ extension LocalizationManager {
         "settings.alert.early.minutesFormat":       "%d Minuten vorher",
         "settings.section.menuBar":                 "Menüleiste",
         "settings.menuBar.showMeeting":             "Nächstes Meeting in der Menüleiste anzeigen",
+
+        // Settings — joining meetings (browser window placement)
+        "settings.section.joining":                 "Meetings beitreten",
+        "settings.joining.newWindow":               "Meetings in einem neuen Browserfenster öffnen",
+        "settings.joining.builtInDisplay":          "Immer auf dem integrierten Display",
+        "settings.joining.caption":                 "Beide sind standardmäßig aus. „Immer auf dem integrierten Display“ öffnet das Meeting auf dem Bildschirm des Notebooks statt auf einem externen Monitor und weicht auf das Hauptdisplay aus, wenn der Notebook-Bildschirm nicht Teil der Anordnung ist.",
+        "settings.joining.browserFallback":         "Ihr Browser",
+        "settings.joining.permissionTitle":         "Slapss braucht die Berechtigung, %@ zu steuern",
+        "settings.joining.permissionBody":          "macOS fragt beim ersten Beitritt zu einem Meeting danach. Slapss nutzt das ausschließlich, um das Meeting-Fenster zu öffnen und zu positionieren. Wenn Sie ablehnen, öffnen sich Meetings weiterhin, nur dort, wo %@ sie platziert.",
+        "settings.joining.permissionDenied":        "Slapss darf %@ nicht steuern, daher öffnen sich Meeting-Fenster dort, wo er sie platziert.",
+        "settings.joining.unsupportedBrowser":      "Slapss kann die Fenster von %@ nicht positionieren, daher öffnen sich Meetings auf dem Display, das er wählt. Ihre übrigen Einstellungen gelten weiterhin.",
         "settings.section.googleMeet":              "Google Meet",
         "settings.googleMeet.perCalendar":          "Google-Konto pro Kalender wählen",
         "settings.googleMeet.description":          "Für Nutzer mit mehreren Google-Konten. Wenn aktiviert, kann im Tab Kalender festgelegt werden, welches Konto Google Meet-Links öffnet.",
@@ -726,6 +774,7 @@ extension LocalizationManager {
     static let it: [String: String] = [
         "general.off":                              "Disattivato",
         "general.continue":                         "Continua",
+        "general.cancel":                           "Annulla",
         "general.today":                            "Oggi, %@",
 
         "alert.status.inMinutes":                   "tra %d min",
@@ -779,6 +828,17 @@ extension LocalizationManager {
         "settings.alert.early.minutesFormat":       "%d minuti prima",
         "settings.section.menuBar":                 "Barra dei menu",
         "settings.menuBar.showMeeting":             "Mostra la prossima riunione nella barra dei menu",
+
+        // Settings — joining meetings (browser window placement)
+        "settings.section.joining":                 "Partecipare alle riunioni",
+        "settings.joining.newWindow":               "Apri le riunioni in una nuova finestra del browser",
+        "settings.joining.builtInDisplay":          "Sempre sul display integrato",
+        "settings.joining.caption":                 "Entrambe sono disattivate per impostazione predefinita. «Sempre sul display integrato» apre la riunione sullo schermo del portatile invece che su un monitor esterno, e usa il display principale quando quello del portatile non fa parte della configurazione.",
+        "settings.joining.browserFallback":         "il tuo browser",
+        "settings.joining.permissionTitle":         "Slapss ha bisogno dell’autorizzazione per controllare %@",
+        "settings.joining.permissionBody":          "macOS te la chiederà la prima volta che partecipi a una riunione. Slapss la usa solo per aprire la finestra della riunione e posizionarla, nient’altro. Se rifiuti, le riunioni si aprono comunque, semplicemente dove le mette %@.",
+        "settings.joining.permissionDenied":        "Slapss non è autorizzato a controllare %@, quindi le finestre delle riunioni si aprono dove le mette lui.",
+        "settings.joining.unsupportedBrowser":      "Slapss non può posizionare le finestre di %@, quindi le riunioni si aprono sul display che sceglie lui. Le altre impostazioni restano valide.",
         "settings.section.googleMeet":              "Google Meet",
         "settings.googleMeet.perCalendar":          "Scegli account Google per calendario",
         "settings.googleMeet.description":          "Per chi ha più di un account Google. Se attivato, la scheda Calendari permette di scegliere quale account apre i link Google Meet di ciascun calendario.",
@@ -901,6 +961,7 @@ extension LocalizationManager {
     static let fr: [String: String] = [
         "general.off":                              "Désactivé",
         "general.continue":                         "Continuer",
+        "general.cancel":                           "Annuler",
         "general.today":                            "Aujourd'hui, %@",
 
         "alert.status.inMinutes":                   "dans %d min",
@@ -954,6 +1015,17 @@ extension LocalizationManager {
         "settings.alert.early.minutesFormat":       "%d minutes avant",
         "settings.section.menuBar":                 "Barre des menus",
         "settings.menuBar.showMeeting":             "Afficher la prochaine réunion dans la barre des menus",
+
+        // Settings — joining meetings (browser window placement)
+        "settings.section.joining":                 "Rejoindre les réunions",
+        "settings.joining.newWindow":               "Ouvrir les réunions dans une nouvelle fenêtre du navigateur",
+        "settings.joining.builtInDisplay":          "Toujours sur l’écran intégré",
+        "settings.joining.caption":                 "Les deux sont désactivées par défaut. « Toujours sur l’écran intégré » ouvre la réunion sur l’écran du portable plutôt que sur un moniteur externe, et utilise l’écran principal lorsque celui du portable ne fait pas partie de la configuration.",
+        "settings.joining.browserFallback":         "votre navigateur",
+        "settings.joining.permissionTitle":         "Slapss a besoin d’une autorisation pour contrôler %@",
+        "settings.joining.permissionBody":          "macOS vous la demandera la première fois que vous rejoindrez une réunion. Slapss ne l’utilise que pour ouvrir la fenêtre de la réunion et la placer, rien d’autre. Si vous refusez, les réunions s’ouvrent quand même, simplement là où %@ les place.",
+        "settings.joining.permissionDenied":        "Slapss n’est pas autorisé à contrôler %@, donc les fenêtres de réunion s’ouvrent là où il les place.",
+        "settings.joining.unsupportedBrowser":      "Slapss ne peut pas positionner les fenêtres de %@, donc les réunions s’ouvrent sur l’écran qu’il choisit. Vos autres réglages restent appliqués.",
         "settings.section.googleMeet":              "Google Meet",
         "settings.googleMeet.perCalendar":          "Choisir un compte Google par calendrier",
         "settings.googleMeet.description":          "Pour les personnes connectées à plusieurs comptes Google. Lorsque activé, l'onglet Calendriers permet de choisir quel compte ouvre les liens Google Meet de chaque calendrier.",
