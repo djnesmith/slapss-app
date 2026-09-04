@@ -26,6 +26,7 @@ final class AppSettings: ObservableObject {
         static let overlayLeadTimeSeconds = "slapss.overlayLeadTimeSeconds"
         static let showReminderOverlay = "slapss.showReminderOverlay"
         static let onlyAcceptedMeetings = "slapss.onlyAcceptedMeetings"
+        static let pauseMediaOnJoin = "slapss.pauseMediaOnJoin"
         static let theme = "slapss.theme"
         static let openMeetingsInNewWindow = "slapss.openMeetingsInNewWindow"
         static let openMeetingsOnBuiltInDisplay = "slapss.openMeetingsOnBuiltInDisplay"
@@ -123,6 +124,14 @@ final class AppSettings: ObservableObject {
         didSet { defaults.set(onlyAcceptedMeetings, forKey: Key.onlyAcceptedMeetings) }
     }
 
+    /// When true, joining a meeting posts the system Play/Pause key first, if
+    /// something is producing audio. Default: false — it cannot work without an
+    /// Accessibility grant the user has not been asked for, so switching it on
+    /// is what starts that conversation.
+    @Published var pauseMediaOnJoin: Bool {
+        didSet { defaults.set(pauseMediaOnJoin, forKey: Key.pauseMediaOnJoin) }
+    }
+
     /// Master switch for the per-calendar Google `authuser` picker. Off by
     /// default — it's an advanced option only relevant to people signed into
     /// multiple Google accounts. When on, the Calendars tab surfaces the
@@ -217,6 +226,10 @@ final class AppSettings: ObservableObject {
         // so existing users keep firing overlays for tentative meetings.
         self.onlyAcceptedMeetings = defaults.bool(forKey: Key.onlyAcceptedMeetings)
 
+        // Also false by default, and for a stronger reason than the one above:
+        // the feature is inert without a permission grant.
+        self.pauseMediaOnJoin = defaults.bool(forKey: Key.pauseMediaOnJoin)
+
         // Theme — falls back to .sunset (the original look) for missing or
         // unrecognized stored values.
         self.theme = defaults.string(forKey: Key.theme)
@@ -255,5 +268,18 @@ final class AppSettings: ObservableObject {
             opensNewWindow: defaults.bool(forKey: Key.openMeetingsInNewWindow),
             forcesBuiltInDisplay: defaults.bool(forKey: Key.openMeetingsOnBuiltInDisplay)
         )
+    }
+}
+
+extension AppSettings {
+    /// The persisted `pauseMediaOnJoin` flag, without an instance.
+    ///
+    /// For `AppDelegate`'s notification-action Join, which is an AppKit
+    /// delegate callback with no SwiftUI environment to read an `AppSettings`
+    /// from — the same constraint that makes it build its own
+    /// `LocalizationManager`. Reads the same key the instance writes, so the
+    /// two cannot drift.
+    static func pauseMediaOnJoinPersisted(_ defaults: UserDefaults = .standard) -> Bool {
+        defaults.bool(forKey: Key.pauseMediaOnJoin)
     }
 }

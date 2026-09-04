@@ -81,7 +81,11 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
                 // SwiftUI environment exists, same as the LocalizationManager
                 // above — so the preferences are read straight from
                 // UserDefaults.
-                MeetingURLOpener.open(url, placement: AppSettings.persistedBrowserPlacement())
+                MeetingURLOpener.open(
+                    url,
+                    placement: AppSettings.persistedBrowserPlacement(),
+                    pauseMedia: AppSettings.pauseMediaOnJoinPersisted()
+                )
             }
         }
         completionHandler()

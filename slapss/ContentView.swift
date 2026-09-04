@@ -685,6 +685,14 @@ enum SystemSettingsOpener {
         guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation") else { return }
         NSWorkspace.shared.open(url)
     }
+
+    /// Privacy & Security → Accessibility, which is what lets Slapss post the
+    /// Play/Pause key. A different grant from Automation above, and macOS
+    /// raises no prompt for it — the user has to tick the row themselves.
+    static func openAccessibilityPrivacy() {
+        guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") else { return }
+        NSWorkspace.shared.open(url)
+    }
 }
 
 // MARK: - Hero card (sticker)
@@ -1089,7 +1097,12 @@ private struct JoinButton: View {
             withAnimation(.easeOut(duration: 0.08)) { pressed = true }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
                 withAnimation(.easeOut(duration: 0.08)) { pressed = false }
-                MeetingURLOpener.open(url, authUser: authUser, placement: settings.browserPlacement)
+                MeetingURLOpener.open(
+                    url,
+                    authUser: authUser,
+                    placement: settings.browserPlacement,
+                    pauseMedia: settings.pauseMediaOnJoin
+                )
             }
         } label: {
             HStack(spacing: 6) {

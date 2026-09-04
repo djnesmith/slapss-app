@@ -18,6 +18,11 @@ struct SettingsView: View {
     @Environment(\.openWindow) private var openWindow
 
     @State private var launchAtLogin: Bool = LaunchAtLoginManager.isEnabled
+    /// Whether the Accessibility grant is still missing, for the affordance in
+    /// the Alert section. Re-read on reactivation, not just on first appearance
+    /// — the user leaves to System Settings to grant it and comes back to a
+    /// window that never closed.
+    @State private var needsAccessibility: Bool = !MediaPauser.canPostSyntheticEvents
 
     /// The join preference the user just switched on that still needs the
     /// Automation grant. Non-nil while the explanation alert is up; the
@@ -53,8 +58,10 @@ struct SettingsView: View {
             aggregator.refreshSourcesIfNecessary()
             // Picks up a grant (or a revocation) the user just made in System
             // Settings, or a change of default browser, without needing the
-            // window reopened.
+            // window reopened. Accessibility rides the same seam — macOS
+            // notifies nothing when that grant changes either.
             refreshBrowserState()
+            needsAccessibility = !MediaPauser.canPostSyntheticEvents
         }
     }
 
@@ -175,6 +182,33 @@ struct SettingsView: View {
                 Toggle(lm["settings.alert.playSound"], isOn: $settings.alertSoundEnabled)
                 Toggle(lm["settings.alert.allDisplays"], isOn: $settings.showAlertOnAllScreens)
                 Toggle(lm["settings.alert.reminderOverlay"], isOn: $settings.showReminderOverlay)
+                Toggle(lm["settings.alert.pauseMedia"], isOn: $settings.pauseMediaOnJoin)
+                    .onChange(of: settings.pauseMediaOnJoin) { _, isOn in
+                        // Switching it on is the only moment the user has
+                        // expressed intent, so it is where the permission
+                        // conversation starts. This raises no dialog — it only
+                        // puts slapss into the Accessibility list, unchecked,
+                        // so the button below lands somewhere useful.
+                        guard isOn else { return }
+                        MediaPauser.requestAccessibilityRow()
+                        needsAccessibility = !MediaPauser.canPostSyntheticEvents
+                    }
+                Text(lm["settings.alert.pauseMedia.caption"])
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                if settings.pauseMediaOnJoin && needsAccessibility {
+                    HStack(spacing: 8) {
+                        Text(lm["settings.alert.pauseMedia.needsPermission"])
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Button(lm["general.openSystemSettings"]) {
+                            SystemSettingsOpener.openAccessibilityPrivacy()
+                        }
+                        .controlSize(.small)
+                    }
+                }
                 Toggle(lm["settings.alert.onlyAccepted"], isOn: $settings.onlyAcceptedMeetings)
                 // The filter fails open (unknown RSVP still fires) and is
                 // scheduler-only — without this line users think it's broken

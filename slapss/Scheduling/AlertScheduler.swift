@@ -524,7 +524,8 @@ final class AlertScheduler: ObservableObject {
             MeetingURLOpener.open(
                 url,
                 authUser: authUser,
-                placement: settings?.browserPlacement ?? .browserDecides
+                placement: settings?.browserPlacement ?? .browserDecides,
+                pauseMedia: settings?.pauseMediaOnJoin ?? false
             )
         }
         dismiss(meeting)

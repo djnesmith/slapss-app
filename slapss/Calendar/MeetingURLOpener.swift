@@ -28,7 +28,18 @@ enum MeetingURLOpener {
     /// - Parameter placement: the user's new-window / built-in-display
     ///   preferences. Defaults to `.browserDecides`, which is the plain
     ///   `NSWorkspace.open` this method has always done.
-    static func open(_ url: URL, authUser: Int? = nil, placement: BrowserPlacement = .browserDecides) {
+    /// - Parameter pauseMedia: pause whatever is playing audio before opening.
+    ///   Passed in rather than read here so this stays free of settings
+    ///   plumbing.
+    static func open(
+        _ url: URL,
+        authUser: Int? = nil,
+        placement: BrowserPlacement = .browserDecides,
+        pauseMedia: Bool = false
+    ) {
+        // Ahead of every branch below, so it applies whether the meeting opens
+        // in Teams, in a placed browser window, or in the plain workspace open.
+        if pauseMedia { MediaPauser.sendPlayPauseToggle() }
         let target = applyAuthUserIfNeeded(url, authUser: authUser)
         let urlString = target.absoluteString
 
