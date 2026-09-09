@@ -1,10 +1,18 @@
 # Releasing Slapss
 
-The maintainer's checklist. Slapss ships through the Mac App Store; this
-repository is the public source mirror of what shipped. Both have to stay in
-step, and the order below is what keeps them there.
+Can Cetin's upstream release checklist, kept for reference. Upstream Slapss
+ships through the Mac App Store and `theshiver/slapss-app` is the public source
+mirror of what shipped; the order below is what keeps them in step.
 
-**Working copy:** `~/Projects/slapss/slapss-public` → `theshiver/slapss-app` (public).
+**This fork (`djnesmith/slapss-app`) does not ship through any of this.** Releases
+here are local builds, version numbers follow upstream's `MARKETING_VERSION` for
+parity (David decides any deviation), and the only steps that apply here are
+`CHANGELOG.md` and the `CLAUDE.md` Changelog log. The Xcode Cloud, App Store
+Connect, GitHub Release and marketing-site steps are upstream's — not things to
+do from this repository.
+
+**Upstream working copy (Can's machine):** `~/Projects/slapss/slapss-public` → `theshiver/slapss-app` (public).
+**This fork:** `origin` = `djnesmith/slapss-app`, `upstream` = `theshiver/slapss-app`.
 
 > `theshiver/slapss-app-archive` is a **read-only archive** of the pre-open-source
 > history, kept private because it still contains commits authored from a
@@ -18,8 +26,8 @@ step, and the order below is what keeps them there.
 
 ## Before you start
 
-Decide the version number. Nothing else in this document works until you have
-it. Two values, both in `slapss.xcodeproj/project.pbxproj`, each appearing twice
+Decide the version number (in this fork it follows upstream's; David decides any
+deviation). Nothing else in this document works until you have it. Two values, both in `slapss.xcodeproj/project.pbxproj`, each appearing twice
 (Debug and Release) — **all four must be updated together**:
 
 | Setting | Meaning | Example |
@@ -113,7 +121,7 @@ Build numbers are assigned by Xcode Cloud, not by you — see *Before you start*
 ## 4. GitHub Release
 
 Any time after **Release check** is green — it does **not** wait for App Store
-approval (Can's call, 2026-08-25, first applied to v2.0.1).
+approval (decided upstream 2026-08-25, first applied to v2.0.1).
 
 This used to be held back until the App Store build was live, because a release
 hanging off a tag reads as "this build is available" and publishing early
@@ -136,7 +144,7 @@ releases as availability, put the old ordering back.**
 
 ## 5. Marketing site — separate private repo
 
-`~/Projects/slapss/slapss-web` (private, Cloudflare).
+`~/Projects/slapss/slapss-web` (private, Cloudflare) — Can's repo, not checked out on this machine.
 
 Copy the `CHANGELOG.md` entry into `changelog.html`, matching the existing
 markup. Update other pages only if the release genuinely changed what they say
