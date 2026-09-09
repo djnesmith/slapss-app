@@ -611,7 +611,13 @@ final class AlertScheduler: ObservableObject {
     ///   2. Among active (in-progress) meetings, the one that started most
     ///      recently. Overlap case where neither meeting is "imminent": the
     ///      freshly-started one wins over the trailing older one.
-    ///   3. Otherwise the soonest imminent meeting (5–15 minutes away).
+    ///   3. Otherwise the soonest meeting that starts more than 5 minutes
+    ///      from now and within the user's chosen horizon
+    ///      (`AppSettings.menuBarMeetingVisibility`):
+    ///      - `.whenClose` — the lead-time setting, never less than 15
+    ///        minutes. This is the pre-2.1.0 behaviour.
+    ///      - `.allDay` — everything left today, however far away.
+    ///      `.off` returns nil before any of this runs.
     ///
     /// Note: alert-dismissed meetings (`dismissedIDs`) are intentionally NOT
     /// filtered out here. Dismissing the full-screen overlay only stops the
@@ -620,7 +626,33 @@ final class AlertScheduler: ObservableObject {
     /// label specifically, the user uses the "Hide from menu bar" link in
     /// the popover, which sets `menuBarMutedIDs`.
     func currentMenuBarMeeting(now: Date = Date()) -> MeetingEvent? {
-        priorityMeeting(now: now, includeReminders: true, respectMutes: true)
+        guard settings?.menuBarMeetingVisibility != .off else { return nil }
+        return priorityMeeting(
+            now: now,
+            includeReminders: true,
+            respectMutes: true,
+            horizon: menuBarHorizon(now: now)
+        )
+    }
+
+    /// How far ahead rule 3 looks for the *menu bar label only*. Every other
+    /// caller keeps `priorityMeeting`'s 15-minute default — notably the
+    /// popover's hero card, which answers "what is happening now", not
+    /// "what is left today", and must not widen with this setting.
+    private func menuBarHorizon(now: Date) -> TimeInterval {
+        switch settings?.menuBarMeetingVisibility ?? .whenClose {
+        case .off:
+            return 0
+        case .whenClose:
+            return TimeInterval(max(settings?.leadTimeMinutes ?? 15, 15) * 60)
+        case .allDay:
+            // Rest of today only — the pool spans 24h ahead, so without this
+            // clip a 22:00 lookup would surface tomorrow morning's first meeting.
+            // date(byAdding:) rather than +86400 so DST days stay correct.
+            let cal = Calendar.current
+            let startOfTomorrow = cal.date(byAdding: .day, value: 1, to: cal.startOfDay(for: now))
+            return max(0, startOfTomorrow?.timeIntervalSince(now) ?? 15 * 60)
+        }
     }
 
     /// Shared promotion logic behind both the menu-bar label and the popover's
@@ -631,13 +663,16 @@ final class AlertScheduler: ObservableObject {
     /// - `respectMutes`: when false, "hidden from menu bar" entries are still
     ///   considered. Muting is a menu-bar-only concern; the popover hero
     ///   ignores it (it passes false) so the card keeps surfacing the meeting.
+    /// - `horizon`: how far ahead rule 3 looks. Only `currentMenuBarMeeting`
+    ///   passes a non-default value; everything else keeps 15 minutes.
     ///
     /// Priority order (first matching wins) is documented in the comment block
     /// on `currentMenuBarMeeting` directly above.
     func priorityMeeting(
         now: Date = Date(),
         includeReminders: Bool,
-        respectMutes: Bool
+        respectMutes: Bool,
+        horizon: TimeInterval = 15 * 60
     ) -> MeetingEvent? {
         guard let aggregator else { return nil }
         // Pool: future-relevant items + (optionally) past-today reminders.
@@ -680,10 +715,12 @@ final class AlertScheduler: ObservableObject {
             return mostRecent
         }
 
-        // 3) Soonest imminent (5–15 min away).
+        // 3) Soonest upcoming, between 5 minutes and `horizon` away. The
+        // 5-minute floor is rule 1's promotion boundary, not a visibility
+        // one, so it stays fixed however wide the horizon gets.
         let imminent = pool.filter {
             let untilStart = $0.startDate.timeIntervalSince(now)
-            return untilStart > 5 * 60 && untilStart <= 15 * 60
+            return untilStart > 5 * 60 && untilStart <= horizon
         }
         return imminent.min(by: { $0.startDate < $1.startDate })
     }

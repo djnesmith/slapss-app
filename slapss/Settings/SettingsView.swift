@@ -220,7 +220,16 @@ struct SettingsView: View {
             }
 
             Section(lm["settings.section.menuBar"]) {
-                Toggle(lm["settings.menuBar.showMeeting"], isOn: $settings.showNextMeetingInMenuBar)
+                Picker(lm["settings.menuBar.label"], selection: $settings.menuBarMeetingVisibility) {
+                    Text(lm["general.off"]).tag(MenuBarMeetingVisibility.off)
+                    Text(lm["settings.menuBar.whenClose"]).tag(MenuBarMeetingVisibility.whenClose)
+                    Text(lm["settings.menuBar.allDay"]).tag(MenuBarMeetingVisibility.allDay)
+                }
+                .pickerStyle(.menu)
+                Text(lm["settings.menuBar.caption"])
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             Section(lm["settings.section.popover"]) {

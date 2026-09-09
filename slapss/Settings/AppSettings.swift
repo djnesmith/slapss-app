@@ -9,6 +9,17 @@
 import Combine
 import Foundation
 
+/// How far ahead the menu bar label surfaces the next meeting.
+enum MenuBarMeetingVisibility: String, CaseIterable {
+    /// Never — the status item shows only the icon.
+    case off
+    /// While a meeting is running or is within the user's lead time
+    /// (floor of 15 minutes). The behaviour every version before 2.1.0 had.
+    case whenClose
+    /// Any remaining meeting today, however far away.
+    case allDay
+}
+
 @MainActor
 final class AppSettings: ObservableObject {
     private enum Key {
@@ -19,7 +30,10 @@ final class AppSettings: ObservableObject {
         static let onboardingCompleted = "slapss.onboardingCompleted"
         static let showPastMeetingsToday = "slapss.showPastMeetingsToday"
         static let showReminders = "slapss.showReminders"
+        /// Legacy, read-only. Superseded by `menuBarMeetingVisibility` in
+        /// 2.1.0 and migrated once in `init`. Never written again.
         static let showNextMeetingInMenuBar = "slapss.showNextMeetingInMenuBar"
+        static let menuBarMeetingVisibility = "slapss.menuBarMeetingVisibility"
         static let showAlertOnAllScreens = "slapss.showAlertOnAllScreens"
         static let authUserByCalendar = "slapss.authUserByCalendar"
         static let enableGoogleAuthUser = "slapss.enableGoogleAuthUser"
@@ -74,11 +88,13 @@ final class AppSettings: ObservableObject {
         didSet { defaults.set(showReminders, forKey: Key.showReminders) }
     }
 
-    /// When true, the menu bar status item shows the next/active meeting's
-    /// title and countdown next to the icon. When false, only the icon is
-    /// shown. Default: true.
-    @Published var showNextMeetingInMenuBar: Bool {
-        didSet { defaults.set(showNextMeetingInMenuBar, forKey: Key.showNextMeetingInMenuBar) }
+    /// How far ahead the menu bar status item surfaces the next meeting's
+    /// title and countdown next to the icon. `.off` shows only the icon.
+    /// Default: `.whenClose` — identical to the pre-2.1.0 behaviour, so
+    /// existing users see no change. Replaced the `showNextMeetingInMenuBar`
+    /// bool, which is still read once in `init` to migrate.
+    @Published var menuBarMeetingVisibility: MenuBarMeetingVisibility {
+        didSet { defaults.set(menuBarMeetingVisibility.rawValue, forKey: Key.menuBarMeetingVisibility) }
     }
 
     /// When true, the full-screen alert is mirrored on every connected
@@ -195,10 +211,17 @@ final class AppSettings: ObservableObject {
             self.showReminders = defaults.bool(forKey: Key.showReminders)
         }
 
-        if defaults.object(forKey: Key.showNextMeetingInMenuBar) == nil {
-            self.showNextMeetingInMenuBar = true
+        // Menu bar visibility. New key wins; otherwise migrate the legacy
+        // bool once (true → .whenClose, false → .off) so users who had turned
+        // the label off keep it off. The legacy key is never written again.
+        if let stored = defaults.string(forKey: Key.menuBarMeetingVisibility)
+            .flatMap(MenuBarMeetingVisibility.init(rawValue:)) {
+            self.menuBarMeetingVisibility = stored
+        } else if defaults.object(forKey: Key.showNextMeetingInMenuBar) != nil {
+            self.menuBarMeetingVisibility =
+                defaults.bool(forKey: Key.showNextMeetingInMenuBar) ? .whenClose : .off
         } else {
-            self.showNextMeetingInMenuBar = defaults.bool(forKey: Key.showNextMeetingInMenuBar)
+            self.menuBarMeetingVisibility = .whenClose
         }
 
         // Defaults to false, which UserDefaults.bool already returns for a

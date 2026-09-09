@@ -77,7 +77,10 @@ extension LocalizationManager {
         "settings.alert.early.secondsFormat":       "%d seconds before",
         "settings.alert.early.minutesFormat":       "%d minutes before",
         "settings.section.menuBar":                 "Menu bar",
-        "settings.menuBar.showMeeting":             "Show the next meeting in the menu bar",
+        "settings.menuBar.label":                   "Show the next meeting:",
+        "settings.menuBar.whenClose":               "When it's close",
+        "settings.menuBar.allDay":                  "Anytime today",
+        "settings.menuBar.caption":                 "\"When it's close\" follows your lead-time setting, and at least 15 minutes ahead. \"Anytime today\" shows the next meeting left today, however far away.",
 
         // Settings — joining meetings (browser window placement)
         "settings.section.joining":                 "Joining meetings",
@@ -272,7 +275,10 @@ extension LocalizationManager {
         "settings.alert.early.secondsFormat":       "%d saniye önce",
         "settings.alert.early.minutesFormat":       "%d dakika önce",
         "settings.section.menuBar":                 "Menü çubuğu",
-        "settings.menuBar.showMeeting":             "Sonraki toplantıyı menü çubuğunda göster",
+        "settings.menuBar.label":                   "Sonraki toplantıyı göster:",
+        "settings.menuBar.whenClose":               "Yaklaşınca",
+        "settings.menuBar.allDay":                  "Gün boyu",
+        "settings.menuBar.caption":                 "“Yaklaşınca”, önceden bildirim ayarını izler; en az 15 dakika öncesinden gösterir. “Gün boyu”, bugün kalan sıradaki toplantıyı ne kadar uzak olursa olsun gösterir.",
 
         // Settings — joining meetings (browser window placement)
         "settings.section.joining":                 "Toplantıya katılma",
@@ -462,7 +468,10 @@ extension LocalizationManager {
         "settings.alert.early.secondsFormat":       "%d segundos antes",
         "settings.alert.early.minutesFormat":       "%d minutos antes",
         "settings.section.menuBar":                 "Barra de menú",
-        "settings.menuBar.showMeeting":             "Mostrar la próxima reunión en la barra de menú",
+        "settings.menuBar.label":                   "Mostrar la próxima reunión:",
+        "settings.menuBar.whenClose":               "Cuando esté cerca",
+        "settings.menuBar.allDay":                  "Cualquier hora de hoy",
+        "settings.menuBar.caption":                 "«Cuando esté cerca» sigue el ajuste de notificación anticipada, con un mínimo de 15 minutos. «Cualquier hora de hoy» muestra la próxima reunión que quede hoy, por lejos que esté.",
 
         // Settings — joining meetings (browser window placement)
         "settings.section.joining":                 "Unirse a reuniones",
@@ -652,7 +661,10 @@ extension LocalizationManager {
         "settings.alert.early.secondsFormat":       "%d Sekunden vorher",
         "settings.alert.early.minutesFormat":       "%d Minuten vorher",
         "settings.section.menuBar":                 "Menüleiste",
-        "settings.menuBar.showMeeting":             "Nächstes Meeting in der Menüleiste anzeigen",
+        "settings.menuBar.label":                   "Nächstes Meeting anzeigen:",
+        "settings.menuBar.whenClose":               "Kurz davor",
+        "settings.menuBar.allDay":                  "Den ganzen Tag",
+        "settings.menuBar.caption":                 "„Kurz davor“ richtet sich nach der Vorabbenachrichtigung, mindestens jedoch 15 Minuten. „Den ganzen Tag“ zeigt das nächste noch anstehende Meeting von heute, egal wie weit entfernt.",
 
         // Settings — joining meetings (browser window placement)
         "settings.section.joining":                 "Meetings beitreten",
@@ -842,7 +854,10 @@ extension LocalizationManager {
         "settings.alert.early.secondsFormat":       "%d secondi prima",
         "settings.alert.early.minutesFormat":       "%d minuti prima",
         "settings.section.menuBar":                 "Barra dei menu",
-        "settings.menuBar.showMeeting":             "Mostra la prossima riunione nella barra dei menu",
+        "settings.menuBar.label":                   "Mostra la prossima riunione:",
+        "settings.menuBar.whenClose":               "Quando è vicina",
+        "settings.menuBar.allDay":                  "Tutto il giorno",
+        "settings.menuBar.caption":                 "«Quando è vicina» segue l'impostazione della notifica anticipata, con un minimo di 15 minuti. «Tutto il giorno» mostra la prossima riunione rimasta oggi, per quanto lontana sia.",
 
         // Settings — joining meetings (browser window placement)
         "settings.section.joining":                 "Partecipare alle riunioni",
@@ -1032,7 +1047,10 @@ extension LocalizationManager {
         "settings.alert.early.secondsFormat":       "%d secondes avant",
         "settings.alert.early.minutesFormat":       "%d minutes avant",
         "settings.section.menuBar":                 "Barre des menus",
-        "settings.menuBar.showMeeting":             "Afficher la prochaine réunion dans la barre des menus",
+        "settings.menuBar.label":                   "Afficher la prochaine réunion :",
+        "settings.menuBar.whenClose":               "Quand elle approche",
+        "settings.menuBar.allDay":                  "Toute la journée",
+        "settings.menuBar.caption":                 "« Quand elle approche » suit le réglage de la notification en avance, avec un minimum de 15 minutes. « Toute la journée » affiche la prochaine réunion restante aujourd'hui, aussi lointaine soit-elle.",
 
         // Settings — joining meetings (browser window placement)
         "settings.section.joining":                 "Rejoindre les réunions",

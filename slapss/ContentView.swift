@@ -1631,8 +1631,7 @@ struct MenuBarLabel: View {
                     Self.menuBarLogoImage
                     Text(lm["menubar.presenting"])
                 }
-            } else if settings.showNextMeetingInMenuBar,
-               let meeting = scheduler.currentMenuBarMeeting(now: clock.date) {
+            } else if let meeting = scheduler.currentMenuBarMeeting(now: clock.date) {
                 HStack(spacing: 4) {
                     Self.menuBarLogoImage
                     Text("\(displayTitle(for: meeting)) · \(timeLabel(for: meeting, now: clock.date))")
@@ -1721,9 +1720,13 @@ struct MenuBarLabel: View {
         let untilStart = meeting.startDate.timeIntervalSince(now)
 
         // Reminders are an instant in time — there's no "Xm left" because
-        // they have no duration. Show "in Xm" when approaching, "due now"
-        // around the moment, and "Xm ago" once overdue.
+        // they have no duration. Show the due time when it's still hours off,
+        // "in Xm" when approaching, "due now" around the moment, and "Xm ago"
+        // once overdue.
         if meeting.isReminder {
+            if untilStart > 60 * 60 {
+                return meeting.startTimeString
+            }
             if untilStart > 30 {
                 let mins = max(1, Int((untilStart + 30) / 60))
                 return lm.t("menubar.inMinutes", mins)
@@ -1737,6 +1740,13 @@ struct MenuBarLabel: View {
 
         let untilEnd = meeting.endDate.timeIntervalSince(now)
         if untilStart > 0 {
+            // Past an hour out a countdown stops being readable ("in 690m"),
+            // so show the clock time instead. Only reachable with the
+            // "Anytime today" menu bar setting — "When it's close" caps the
+            // horizon at 30 minutes, so existing users never hit this branch.
+            if untilStart > 60 * 60 {
+                return meeting.startTimeString
+            }
             // Round up so 30–89 sec shows as "1m" rather than "0m".
             let mins = max(1, Int((untilStart + 30) / 60))
             return lm.t("menubar.inMinutes", mins)
