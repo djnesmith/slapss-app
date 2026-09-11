@@ -142,9 +142,18 @@ struct AlertView: View {
         }
         .padding(.vertical, 48)
         .padding(.horizontal, 56)
-        .background(glassBackground)
-        .overlay(glassBorder)
-        .clipShape(RoundedRectangle(cornerRadius: 32))
+        // Clip the *background* to the rounded rect, not the card itself: the
+        // snooze dropdown is an in-window `.overlay` on the actions row (see
+        // the gotcha in CLAUDE.md) and it opens upward past the card's top
+        // edge, so a clip on the whole card cut off its upper rows.
+        // The border lives in the background too, for the same reason: as an
+        // `.overlay` it drew on top of the open dropdown as a hairline where
+        // the card's top edge crossed it.
+        .background(
+            glassBackground
+                .clipShape(RoundedRectangle(cornerRadius: 32))
+                .overlay(glassBorder)
+        )
         .shadow(color: .black.opacity(0.55), radius: 80, x: 0, y: 30)
     }
 
@@ -499,6 +508,8 @@ struct AlertView: View {
             snoozeOption(label: lm["alert.snooze.5minutes"]) { onSnoozeMinutes(5);  snoozeOpen = false }
             snoozeOption(label: lm["alert.snooze.10minutes"]){ onSnoozeMinutes(10); snoozeOpen = false }
             snoozeOption(label: lm["alert.snooze.15minutes"]){ onSnoozeMinutes(15); snoozeOpen = false }
+            snoozeOption(label: lm["alert.snooze.30minutes"]){ onSnoozeMinutes(30); snoozeOpen = false }
+            snoozeOption(label: lm["alert.snooze.1hour"])    { onSnoozeMinutes(60); snoozeOpen = false }
             // "Until end of meeting" doesn't apply to reminders — they're
             // an instant in time with no duration (startDate == endDate).
             if !meeting.isReminder {

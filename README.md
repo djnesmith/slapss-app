@@ -13,6 +13,8 @@ full-screen card on your display the moment a meeting starts.
 
 *Free forever. No subscription, no in-app purchase, no account, no tracking.*
 
+*If Slapss saves you a meeting or two, you can [sponsor its development](https://github.com/sponsors/theshiver). Entirely optional.*
+
 </div>
 
 ---
@@ -34,7 +36,7 @@ use Slapss changes.
 - **Calendar sources:** macOS Calendar and Reminders (EventKit) and Microsoft 365 / Exchange (Microsoft Graph).
 - **Presenting Now** — a one-click toggle that queues alerts instead of firing them while you're screen sharing.
 - **Themes:** Sunset, Ocean, Forest.
-- **Six languages:** English, Turkish, Spanish, German, Italian, French.
+- **Seven languages:** English, Turkish, Spanish, German, Italian, French, Japanese.
 - **Accessibility:** full VoiceOver labelling, keyboard-operable alert, and Reduce Motion / Reduce Transparency support.
 
 ## Privacy

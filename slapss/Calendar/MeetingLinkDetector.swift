@@ -29,6 +29,12 @@ enum MeetingLinkDetector {
         }
     }()
 
+    /// Static assets a provider's own domain serves inside HTML invitations.
+    /// Zoom's Outlook add-in embeds `https://<sub>.zoom.us/static/.../ZoomLogo_110_25.png`
+    /// *above* the join link, so a first-match scan opened the logo instead of
+    /// the meeting (user report, September 2026).
+    private static let assetExtensions: Set<String> = ["png", "jpg", "jpeg", "gif", "svg", "webp", "ico", "css", "js"]
+
     /// Returns the first recognized meeting URL in the input, or nil.
     /// `@MainActor` because NSRegularExpression methods are MainActor-isolated
     /// in the Xcode 26 SDK; all callers are already on the main actor.
@@ -36,15 +42,15 @@ enum MeetingLinkDetector {
     static func firstURL(in text: String) -> URL? {
         let range = NSRange(text.startIndex..<text.endIndex, in: text)
         for (_, regex) in patterns {
-            if let match = regex.firstMatch(in: text, options: [], range: range),
-               let swiftRange = Range(match.range, in: text) {
+            for match in regex.matches(in: text, options: [], range: range) {
+                guard let swiftRange = Range(match.range, in: text) else { continue }
                 let raw = String(text[swiftRange])
                 // Strip trailing punctuation that often gets glued to URLs
                 // when parsing email-style descriptions.
                 let cleaned = raw.trimmingCharacters(in: CharacterSet(charactersIn: ".,;:)]"))
-                if let url = URL(string: cleaned) {
-                    return url
-                }
+                guard let url = URL(string: cleaned),
+                      !assetExtensions.contains(url.pathExtension.lowercased()) else { continue }
+                return url
             }
         }
         return nil

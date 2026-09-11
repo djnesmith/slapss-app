@@ -282,6 +282,15 @@ struct MenuBarContentView: View {
 
     // MARK: Agenda
 
+    /// "Xm ago" for a reminder whose due time has passed, nil for everything
+    /// else. Same string the menu bar label uses for an overdue reminder.
+    private func overdueLabel(for event: MeetingEvent, now: Date) -> String? {
+        guard event.isReminder else { return nil }
+        let overdue = now.timeIntervalSince(event.startDate)
+        guard overdue >= 60 else { return nil }
+        return lm.t("menubar.minutesAgo", Int((overdue + 30) / 60))
+    }
+
     private var agendaSections: some View {
         let now = clock.date
         // The aggregator caches a 24-hour rolling window so the scheduler can
@@ -297,8 +306,21 @@ struct MenuBarContentView: View {
             Calendar.current.isDateInToday($0.startDate)
         }
 
-        let upcoming = upcomingToday.filter { $0.startDate > now }
-        let past = settings.showPastMeetingsToday ? visiblePastToday : []
+        // No `startDate > now` filter here: `upcomingMeetings` is already
+        // endDate > now, so this list also carries meetings that are running
+        // right now. Only one of them becomes the hero; the rest used to
+        // vanish (not "later", not "earlier"), so two overlapping meetings
+        // showed as one. They now sit at the top of "Later today".
+        let upcoming = upcomingToday
+        // A reminder past its due time is overdue, not finished — only
+        // incomplete reminders are fetched at all, so anything here is still
+        // the user's to do. It stays in the upper list (leading it, like an
+        // in-progress meeting) with an "Xm ago" tag, the same story the menu
+        // bar label tells. "Earlier today" is meetings only.
+        let overdueReminders = visiblePastToday.filter { $0.isReminder }
+        let past = settings.showPastMeetingsToday
+            ? visiblePastToday.filter { !$0.isReminder }
+            : []
 
         // Hero promotion defers to the scheduler's shared selector so the card
         // and the menu-bar label always agree on which meeting is "current."
@@ -315,9 +337,9 @@ struct MenuBarContentView: View {
         // in the same window) stays.
         let later: [MeetingEvent]
         if let hero = heroEvent {
-            later = upcoming.filter { $0.id != hero.id }
+            later = overdueReminders + upcoming.filter { $0.id != hero.id }
         } else {
-            later = upcoming
+            later = overdueReminders + upcoming
         }
 
         return VStack(spacing: 0) {
@@ -353,6 +375,7 @@ struct MenuBarContentView: View {
                             event: ev,
                             dimmed: false,
                             onComplete: ev.isReminder ? { scheduler.completeReminder(ev) } : nil,
+                            overdueLabel: overdueLabel(for: ev, now: now),
                             expanded: expandedBinding(for: ev.id)
                         )
                     }
@@ -1125,6 +1148,44 @@ private struct JoinButton: View {
     }
 }
 
+/// Compact circular Join for agenda rows. Quiet at rest (paper/line/ink) so a
+/// day full of Teams meetings doesn't become a column of accent buttons;
+/// on hover it takes the hero Join button's fill so the meaning is learned
+/// once. The 26pt circle is the hit target.
+private struct RowJoinButton: View {
+    let url: URL
+    var authUser: Int? = nil
+    @State private var hovering = false
+    @EnvironmentObject private var lm: LocalizationManager
+    @EnvironmentObject private var settings: AppSettings
+
+    var body: some View {
+        Button {
+            MeetingURLOpener.open(
+                url,
+                authUser: authUser,
+                placement: settings.browserPlacement,
+                pauseMedia: settings.pauseMediaOnJoin
+            )
+        } label: {
+            Image(systemName: "video.fill")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(hovering ? Tokens.joinFg : Tokens.ink2)
+                .frame(width: 26, height: 26)
+                .background(
+                    Circle().fill(hovering ? settings.theme.accents.joinBg : Tokens.paper3)
+                )
+                .overlay(Circle().stroke(hovering ? Color.clear : Tokens.line2, lineWidth: 1))
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .clickCursor()
+        .onHover { hovering = $0 }
+        .animation(.easeOut(duration: 0.12), value: hovering)
+        .accessibilityLabel(lm["popover.join"])
+    }
+}
+
 /// The fallback "no hero" line shown when there's no event in the next 60
 /// minutes but there's still something later today. Tapping it toggles the
 /// referenced meeting's agenda row (the expansion state is lifted into
@@ -1204,6 +1265,9 @@ private struct AgendaRow: View {
     /// Non-nil for reminder rows — tapping the circle icon completes the
     /// reminder and removes it from the list. Nil for meeting rows (no-op).
     let onComplete: (() -> Void)?
+    /// "Xm ago" for a reminder past its due time; nil otherwise. Computed by
+    /// the parent, which owns the clock.
+    var overdueLabel: String? = nil
     /// Lifted to `MenuBarContentView.expandedEventIDs` (was a local `@State`)
     /// so `NoUpNextLine` can expand a row from outside. Behavior within the
     /// row is unchanged — the expand/collapse Button toggles this binding.
@@ -1211,6 +1275,13 @@ private struct AgendaRow: View {
     @EnvironmentObject private var lm: LocalizationManager
     @EnvironmentObject private var settings: AppSettings
     @State private var hovering = false
+
+    /// The header HStack aligns on the title's first baseline, which put the
+    /// Join circle and chevron level with the title line — visibly high
+    /// against a two-line row. Their centre sits this far below that baseline,
+    /// which is the centre of the title+meta block (13pt title ≈ 16pt line,
+    /// 2pt gap, 11pt meta ≈ 13pt line → 31pt block, baseline ≈ 13pt in).
+    private static let trailingControlDrop: CGFloat = 2.5
 
     var body: some View {
         // Resolve @MainActor-isolated joinURL once here so child views can
@@ -1237,9 +1308,9 @@ private struct AgendaRow: View {
                 if event.isReminder {
                     if let onComplete {
                         Button(action: onComplete) {
-                            Image(systemName: dimmed ? "checkmark.circle" : "circle")
+                            Image(systemName: "circle")
                                 .font(.system(size: 12))
-                                .foregroundStyle(dimmed ? Tokens.ink4 : Tokens.ink3)
+                                .foregroundStyle(Tokens.ink3)
                                 // Widen the hit area to ~24pt without moving
                                 // the glyph: pad, capture the padded bounds as
                                 // the hit shape, then un-pad the layout. A bare
@@ -1250,11 +1321,11 @@ private struct AgendaRow: View {
                         }
                         .buttonStyle(.plain)
                         .clickCursor()
-                        .accessibilityLabel(dimmed ? lm["alert.action.complete"] : lm["popover.reminder"])
+                        .accessibilityLabel(lm["alert.action.complete"])
                     } else {
-                        Image(systemName: dimmed ? "checkmark.circle" : "circle")
+                        Image(systemName: "circle")
                             .font(.system(size: 12))
-                            .foregroundStyle(dimmed ? Tokens.ink4 : Tokens.ink3)
+                            .foregroundStyle(Tokens.ink3)
                     }
                 }
 
@@ -1280,18 +1351,6 @@ private struct AgendaRow: View {
                                 .lineLimit(1)
                         }
                         Spacer(minLength: 0)
-
-                        // Chevron — only shown when there's something to reveal.
-                        // Rotates 90° when expanded; animation is scoped so it runs
-                        // even while the parent's disablesAnimations transaction is on.
-                        if hasContent {
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 10, weight: .semibold))
-                                .foregroundStyle(Tokens.ink4)
-                                .rotationEffect(.degrees(expanded ? 90 : 0))
-                                .animation(.easeInOut(duration: 0.18), value: expanded)
-                                .transaction { $0.disablesAnimations = false }
-                        }
                     }
                     .contentShape(Rectangle())
                 }
@@ -1299,15 +1358,55 @@ private struct AgendaRow: View {
                 .disabled(!hasContent)
                 .clickCursor()
                 .accessibilityLabel("\(event.title), \(metaText)")
+
+                // One-click Join, a sibling of the expand Button (not nested,
+                // same accessibility reason as the reminder toggle above).
+                // Hidden for finished meetings and rows without a link — the
+                // expanded panel's labelled Join button stays as it was.
+                if let url = joinURL, !dimmed {
+                    RowJoinButton(
+                        url: url,
+                        authUser: settings.authUser(forCalendarID: event.calendarID)
+                    )
+                    .alignmentGuide(.firstTextBaseline) { $0[VerticalAlignment.center] - Self.trailingControlDrop }
+                }
+
+                // Chevron — only shown when there's something to reveal.
+                // Rotates 90° when expanded; animation is scoped so it runs
+                // even while the parent's disablesAnimations transaction is on.
+                // Sits outside the expand Button so the Join button can go
+                // between text and chevron; it toggles the same binding and
+                // is hidden from VoiceOver, which already has the row button.
+                if hasContent {
+                    Button { expanded.toggle() } label: {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(Tokens.ink4)
+                            .rotationEffect(.degrees(expanded ? 90 : 0))
+                            .animation(.easeInOut(duration: 0.18), value: expanded)
+                            .transaction { $0.disablesAnimations = false }
+                            .padding(6)
+                            .contentShape(Rectangle())
+                            .padding(-6)
+                    }
+                    .buttonStyle(.plain)
+                    .clickCursor()
+                    .accessibilityHidden(true)
+                    .alignmentGuide(.firstTextBaseline) { $0[VerticalAlignment.center] - Self.trailingControlDrop }
+                }
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 9)
 
             // MARK: Expanded detail panel (instant open — no content animation)
             if expanded {
+                // Leading inset = header's 14pt padding + 52pt time column +
+                // 6pt spacing, so every detail line starts under the title.
                 AgendaRowDetailPanel(event: event, dimmed: dimmed, joinURL: joinURL)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 10)
+                    .padding(.leading, 72)
+                    .padding(.trailing, 14)
+                    .padding(.top, 2)
+                    .padding(.bottom, 12)
             }
         }
         // When expanded: card background with border.
@@ -1335,9 +1434,10 @@ private struct AgendaRow: View {
     /// For reminders this collapses to "Reminder" (+ optional notes preview).
     private var metaText: String {
         if event.isReminder {
-            return event.rawDetails.isEmpty
+            let base = event.rawDetails.isEmpty
                 ? lm["popover.reminder"]
                 : lm.t("popover.reminderWithDetails", event.rawDetails)
+            return overdueLabel.map { "\($0) · \(base)" } ?? base
         }
         var parts: [String] = [event.durationString(lm: lm)]
         if let loc = event.location, !loc.isEmpty {
@@ -1368,16 +1468,19 @@ private struct AgendaRowDetailPanel: View {
     @Environment(\.colorScheme) private var scheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        // Every line shares the 14pt icon gutter of `AgendaDetailMetaLine`
+        // so the text column is straight; the calendar dot and the clock
+        // sit in that gutter rather than pushing their text out of line.
+        VStack(alignment: .leading, spacing: 6) {
             // Calendar identity: color dot + name
             if !event.calendarTitle.isEmpty {
-                HStack(spacing: 5) {
-                    if let c = event.calendarColor {
-                        Circle()
-                            .fill(Color(red: c.red, green: c.green,
-                                        blue: c.blue, opacity: c.alpha))
-                            .frame(width: 7, height: 7)
-                    }
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(event.calendarColor.map {
+                            Color(red: $0.red, green: $0.green, blue: $0.blue, opacity: $0.alpha)
+                        } ?? Tokens.ink4)
+                        .frame(width: 7, height: 7)
+                        .frame(width: 14)
                     Text(event.calendarTitle)
                         .font(.system(size: 11, weight: .medium))
                         .foregroundStyle(Tokens.ink3)
@@ -1387,9 +1490,10 @@ private struct AgendaRowDetailPanel: View {
 
             // Full time range (suppressed for reminders — they're instant)
             if !event.isReminder {
-                Text("\(event.timeRangeString) · \(event.durationString(lm: lm))")
-                    .font(.system(size: 12).monospacedDigit())
-                    .foregroundStyle(Tokens.ink2)
+                AgendaDetailMetaLine(
+                    systemImage: "clock",
+                    text: "\(event.timeRangeString) · \(event.durationString(lm: lm))"
+                )
             }
 
             // Location
@@ -1425,6 +1529,7 @@ private struct AgendaRowDetailPanel: View {
                     HStack(spacing: 6) {
                         Image(systemName: "calendar")
                             .font(.system(size: 11))
+                            .frame(width: 14)
                         Text(lm["popover.openInCalendar"])
                             .font(.system(size: 12))
                     }
