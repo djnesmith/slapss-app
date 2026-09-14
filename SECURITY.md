@@ -56,10 +56,12 @@ plainly. Note that this source tree is **not** sandboxed — see the first bulle
   Play/Pause key through `CGEvent.post` just before a join URL opens. Slapss does
   not read the keyboard, observe other applications, or post anything else. The
   grant is visible and revocable in System Settings → Privacy & Security →
-  Accessibility. Two consequences worth knowing: macOS pins this grant to the
-  signing certificate, so a copy signed with a different identity does not inherit
-  it; and `CGEvent.post` reports nothing, so a revoked grant is silently ignored
-  rather than surfaced.
+  Accessibility. Two consequences worth knowing: macOS pins this grant to a code
+  requirement derived from however the binary was signed when the grant was made —
+  a certificate if it was signed with one, otherwise that exact build's `cdhash` —
+  so a differently signed or rebuilt ad-hoc copy does not inherit it; and
+  `CGEvent.post` reports nothing, so a grant that no longer applies is silently
+  ignored rather than surfaced.
 - **Network egress** goes to Microsoft Graph and Microsoft identity endpoints
   only, and only when the user has signed in to a Microsoft 365 account.
 - **Credentials.** Microsoft OAuth tokens are stored in the system keychain. The

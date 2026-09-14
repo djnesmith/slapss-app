@@ -74,4 +74,48 @@ final class MeetingLinkDetectorTests: XCTestCase {
             "https://us06web.zoom.us/j/98765432109"
         )
     }
+
+    /// The `continue` that skips an asset also lets the loop fall through to the
+    /// NEXT pattern, not just the next match of the current one. A Zoom logo with
+    /// no Zoom join link must therefore yield the Teams link, even though Zoom
+    /// outranks Teams.
+    func testAssetOnlyMatchFallsThroughToTheNextProvider() {
+        let body = """
+        <img src="https://us06st2.zoom.us/static/6.3.11431/image/new/ZoomLogo_110_25.png">
+        https://teams.microsoft.com/l/meetup-join/19%3ameeting_abc123/0
+        """
+
+        XCTAssertEqual(
+            MeetingLinkDetector.firstURL(in: body)?.absoluteString,
+            "https://teams.microsoft.com/l/meetup-join/19%3ameeting_abc123/0"
+        )
+    }
+
+    /// The extension is lowercased before the lookup, so a shouting filename is
+    /// still an asset.
+    func testUppercaseAssetExtensionIsStillSkipped() {
+        let body = #"<img src="https://us06st2.zoom.us/static/ZoomLogo_110_25.PNG">"#
+
+        XCTAssertNil(MeetingLinkDetector.firstURL(in: body))
+    }
+
+    /// The filter reads `pathExtension`, which ignores the query string — so an
+    /// asset with a cache-busting parameter is still recognised as one.
+    func testAssetWithQueryStringIsStillSkipped() {
+        let body = #"<img src="https://us06st2.zoom.us/static/ZoomLogo_110_25.png?v=6.3.11431">"#
+
+        XCTAssertNil(MeetingLinkDetector.firstURL(in: body))
+    }
+
+    /// **The tradeoff, pinned deliberately.** The filter keys off the path
+    /// extension alone, so a real join URL whose path happens to end in one of
+    /// those extensions is discarded and the row loses its Join button. Judged
+    /// acceptable — no provider issues join links shaped like this — but it is a
+    /// real edge, and this test is here so that changing it is a decision rather
+    /// than a surprise.
+    func testJoinURLEndingInAFilteredExtensionIsDiscarded() {
+        let body = "https://us06web.zoom.us/j/abc.js"
+
+        XCTAssertNil(MeetingLinkDetector.firstURL(in: body))
+    }
 }

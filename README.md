@@ -50,15 +50,16 @@ There is no Slapss server. There is nothing to have an outage.
 - Its entitlements are three, in [`slapss/slapss.entitlements`](slapss/slapss.entitlements): outbound network (for Microsoft Graph), calendar access, and Apple events. Don't take this on faith, read them off the copy you installed:
   `codesign -d --entitlements :- /Applications/slapss.app`
   The Apple events entitlement (`com.apple.security.automation.apple-events`) exists for the two opt-in settings under Settings → General → Joining meetings: opening a join link in a new browser window, and putting that window on your built-in display. Both are off by default, and with both off no Apple event is ever sent. When you do turn one on, whether an event is sent depends on your browser: Chromium-based browsers take a new window as a launch argument and need no permission, while Safari and any request to move an existing window do. In those cases macOS asks you separately, per app, the first time Slapss tries — and the target is only the browser you have set as default. The events sent are `activate`, `make new document` and `set bounds of front window`. Nothing is ever read back.
+  Two things you may see that aren't in that file. Builds up to 2.0.0 also carried `com.apple.security.files.user-selected.read-only`, injected by an Xcode build setting (`ENABLE_USER_SELECTED_FILES`); no code path ever used it and 2.0.1 removes it. And a copy you build yourself carries `com.apple.security.get-task-allow`, which Xcode adds to local builds so a debugger can attach — App Store builds don't have it.
 - One permission is **not** an entitlement and so will never show up in that
   command: **Accessibility**. It is asked for only by the opt-in "Pause playing
   media when I join" setting (Settings → General), which ships off. With it on,
   Slapss posts one system Play/Pause key just before a meeting opens — the same
   key as on your keyboard. It does not read your keystrokes or watch other apps.
   Revoke it any time in System Settings → Privacy & Security → Accessibility.
-  Because macOS ties that grant to the signing certificate, a copy you build
-  yourself has to be granted it separately from one you installed earlier.
-  Two things you may see that aren't in that file. Builds up to 2.0.0 also carried `com.apple.security.files.user-selected.read-only`, injected by an Xcode build setting (`ENABLE_USER_SELECTED_FILES`); no code path ever used it and 2.0.1 removes it. And a copy you build yourself carries `com.apple.security.get-task-allow`, which Xcode adds to local builds so a debugger can attach — App Store builds don't have it.
+  macOS records the grant against however the copy was signed, so a copy you
+  build yourself has to be granted it separately from one you installed
+  earlier — and if your copy is signed ad-hoc, every rebuild asks again.
 
 ## Architecture
 
