@@ -118,4 +118,91 @@ final class MeetingLinkDetectorTests: XCTestCase {
 
         XCTAssertNil(MeetingLinkDetector.firstURL(in: body))
     }
+
+    // MARK: - SimplePractice
+
+    /// Fabricated — the real appointment id is private and deliberately not in
+    /// this repo. Only the *shape* matters to the pattern.
+    private static let simplePracticeRoom =
+        "https://video.simplepractice.com/appt-0123456789abcdef0123456789abcdef?origin=client"
+
+    /// Builds the minimum `MeetingEvent` needed to exercise `joinURL`, which is
+    /// the property the UI actually gates its Join affordances on.
+    private func event(notes: String, location: String?) -> MeetingEvent {
+        MeetingEvent(
+            id: "ek:test#0",
+            title: "Appointment",
+            startDate: Date(),
+            endDate: Date().addingTimeInterval(3000),
+            location: location,
+            rawDetails: notes,
+            calendarTitle: "Personal",
+            calendarColor: nil,
+            source: .eventKit,
+            attendees: []
+        )
+    }
+
+    func testSimplePracticeRoomIsDetected() {
+        XCTAssertEqual(
+            MeetingLinkDetector.firstURL(in: "Your appointment: \(Self.simplePracticeRoom)")?.absoluteString,
+            Self.simplePracticeRoom
+        )
+    }
+
+    /// `joinURL` scans notes first. This is the path a SimplePractice booking
+    /// email actually takes, and the one that was returning nil.
+    func testJoinURLFindsSimplePracticeInNotes() {
+        let ev = event(notes: "Video appointment\n\(Self.simplePracticeRoom)", location: nil)
+
+        XCTAssertEqual(ev.joinURL?.absoluteString, Self.simplePracticeRoom)
+    }
+
+    /// …and falls back to `location` when the notes carry nothing. Covered
+    /// separately because it is a different branch of `joinURL`, not just a
+    /// different input to the same regex.
+    func testJoinURLFindsSimplePracticeInLocation() {
+        let ev = event(notes: "", location: Self.simplePracticeRoom)
+
+        XCTAssertEqual(ev.joinURL?.absoluteString, Self.simplePracticeRoom)
+    }
+
+    /// The `?origin=client` parameter is part of the room link and must survive
+    /// detection — the trailing-punctuation trim must not eat it.
+    func testSimplePracticeQueryStringSurvives() {
+        let url = MeetingLinkDetector.firstURL(in: Self.simplePracticeRoom)
+
+        XCTAssertEqual(url?.query, "origin=client")
+    }
+
+    /// The new pattern sits inside the same loop as the others, so it inherits
+    /// the 2.1.1 asset filter for free. Pinned so a future refactor that moves
+    /// the filter cannot quietly exempt this provider.
+    func testSimplePracticeAssetIsSkipped() {
+        let body = #"<img src="https://video.simplepractice.com/assets/logo.png">"#
+
+        XCTAssertNil(MeetingLinkDetector.firstURL(in: body))
+    }
+
+    /// Why the host is exact rather than the `[a-zA-Z0-9.-]*` wildcard the Zoom
+    /// and Webex entries use: a wildcard would turn the marketing site and the
+    /// login page into Join buttons that land on a sign-in screen.
+    func testSimplePracticeMarketingAndLoginHostsAreNotJoinLinks() {
+        XCTAssertNil(MeetingLinkDetector.firstURL(in: "https://www.simplepractice.com/pricing"))
+        XCTAssertNil(MeetingLinkDetector.firstURL(in: "https://account.simplepractice.com/login"))
+    }
+
+    /// Appending the pattern last must not reorder anything: a body carrying
+    /// both still resolves to the higher-priority provider.
+    func testExistingProviderStillWinsOverSimplePractice() {
+        let body = """
+        \(Self.simplePracticeRoom)
+        https://us06web.zoom.us/j/98765432109
+        """
+
+        XCTAssertEqual(
+            MeetingLinkDetector.firstURL(in: body)?.absoluteString,
+            "https://us06web.zoom.us/j/98765432109"
+        )
+    }
 }

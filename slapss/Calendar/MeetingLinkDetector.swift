@@ -20,6 +20,17 @@ enum MeetingLinkDetector {
             ("Webex", #"https?://[a-zA-Z0-9.-]*webex\.com/[^\s<>"]+"#),
             ("Whereby", #"https?://[a-zA-Z0-9.-]*whereby\.com/[^\s<>"]+"#),
             ("Around", #"https?://meet\.around\.co/[^\s<>"]+"#),
+            // Exact host, not the `[a-zA-Z0-9.-]*` wildcard used for Zoom,
+            // Webex and Whereby: those issue a subdomain per customer
+            // (`us06web.zoom.us`, `acme.webex.com`), whereas every
+            // SimplePractice video room is served from this one host. A
+            // wildcard would also swallow `www.` and `account.`
+            // simplepractice.com, which are marketing and login pages — a
+            // Join button landing on a sign-in screen is worse than none.
+            // Appended last so the seven existing providers keep their
+            // resolution order exactly; this entry can only add a match
+            // where there was none.
+            ("SimplePractice", #"https?://video\.simplepractice\.com/[^\s<>"]+"#),
         ]
         return raws.compactMap { name, raw in
             guard let regex = try? NSRegularExpression(pattern: raw, options: [.caseInsensitive]) else {
