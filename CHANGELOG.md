@@ -15,6 +15,7 @@ GitHub Releases are generated from it.
 - Firefox is the one exception: it can open a new window but can't be positioned, and Settings says so rather than asking you for a permission that wouldn't help.
 - Microsoft Teams meetings are unaffected: those open in the Teams app, not a browser window.
 - Under the hood: this build is no longer sandboxed. macOS does not let a sandboxed app ask Safari to open a window, so the feature could not work at all while it was. The Mac App Store build is still sandboxed — see README for what that trade means.
+- New: **Pause playing media when I join** (Settings → General → Alert). Off by default. Sends the system Play/Pause key just before a meeting opens, so the podcast or video you had running stops on its own. It reaches Safari and Chrome tabs, which is where the sound usually is. Two honest caveats: it is the same key your keyboard sends, so it is a toggle — if nothing is actually playing it can start something instead — and it needs Accessibility permission, which macOS asks you to grant by hand in System Settings.
 - Fixed: the per-calendar Google account option (Settings → Calendars) was missing from some calendars. If you had renamed a Google account in System Settings — common for a work Google Workspace account — its calendars were the ones that lost the option. Every calendar now offers it.
 
 ## v2.1.1 — September 11, 2026

@@ -21,8 +21,8 @@ older branches.
 
 ## Scope notes
 
-Slapss is a sandboxed macOS app with no server component. Its attack surface is
-small and worth stating plainly:
+Slapss has no server component. Its attack surface is small and worth stating
+plainly. Note that this source tree is **not** sandboxed — see the first bullet.
 
 - **Sandboxing.** This source tree is **not** sandboxed (`ENABLE_APP_SANDBOX =
   NO`); the Mac App Store build is. The App Sandbox blocks Apple events to
@@ -49,6 +49,17 @@ small and worth stating plainly:
   and position a window and read nothing back. macOS gates this behind a separate
   per-target Automation grant that the user is asked for on first use, and
   refusing it degrades to a plain `NSWorkspace.open`.
+- **Accessibility** is a TCC grant, not an entitlement, so it does not appear in
+  `slapss.entitlements` and `codesign` will never show it. It is requested only by
+  the opt-in "Pause playing media when I join" preference (Settings → General),
+  which ships off. When on, `MediaPauser.sendPlayPauseToggle` posts one system
+  Play/Pause key through `CGEvent.post` just before a join URL opens. Slapss does
+  not read the keyboard, observe other applications, or post anything else. The
+  grant is visible and revocable in System Settings → Privacy & Security →
+  Accessibility. Two consequences worth knowing: macOS pins this grant to the
+  signing certificate, so a copy signed with a different identity does not inherit
+  it; and `CGEvent.post` reports nothing, so a revoked grant is silently ignored
+  rather than surfaced.
 - **Network egress** goes to Microsoft Graph and Microsoft identity endpoints
   only, and only when the user has signed in to a Microsoft 365 account.
 - **Credentials.** Microsoft OAuth tokens are stored in the system keychain. The

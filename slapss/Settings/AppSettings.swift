@@ -274,7 +274,7 @@ final class AppSettings: ObservableObject {
     }
 
     /// The two browser-window preferences as one value to hand to
-    /// `MeetingURLOpener.open(_:authUser:placement:)`.
+    /// `MeetingURLOpener.open(_:authUser:placement:pauseMedia:)`.
     var browserPlacement: BrowserPlacement {
         BrowserPlacement(
             opensNewWindow: openMeetingsInNewWindow,
