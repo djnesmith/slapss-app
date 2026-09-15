@@ -265,8 +265,18 @@ the code (reported as "slapss did not stop my media this morning").
 
   ```
   identifier "com.cancetin.slapss" and anchor apple generic and
-  certificate leaf[subject.CN] = "Apple Development: David Nesmith (JFGJA89Z8H)" and
+  certificate leaf[subject.CN] = "Apple Development: <your name> (<your team id>)" and
   certificate 1[field.1.2.840.113635.100.6.2.1]
+  ```
+
+  Read the real one back rather than retyping it — it is whatever macOS stored
+  when the grant was made:
+
+  ```
+  sqlite3 "/Library/Application Support/com.apple.TCC/TCC.db" \
+    "select writefile('/tmp/r.csreq', csreq) from access
+     where client='com.cancetin.slapss' and service='kTCCServicePostEvent';"
+  csreq -r /tmp/r.csreq -t
   ```
 
   That survives every later rebuild signed with the same identity. An ad-hoc
@@ -291,9 +301,10 @@ to the system-db blob. Same database, both forms, an hour apart. So do not reaso
 from the database; reason from the signature in force when the user clicked
 Allow.
 
-So: build **Release signed with David's own identity** when installing locally —
-`Apple Development: David Nesmith (JFGJA89Z8H)`, SHA1
-`673F76D44E642CB36B6D97F610687B281B0712E4`, his only valid codesigning identity.
+So: build **Release signed with your own Apple Development identity** when
+installing locally, never ad-hoc. Find it with
+`security find-identity -v -p codesigning` — on this machine there is exactly
+one, and its SHA1 is what `CODE_SIGN_IDENTITY` wants.
 The project sets `DEVELOPMENT_TEAM = S2RH54MMT3` (Can's) with
 `CODE_SIGN_STYLE = Automatic`, which is why an unqualified build falls back to
 ad-hoc; override on the command line (`CODE_SIGN_STYLE=Manual`,
