@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="slapss/Assets.xcassets/AppIcon.appiconset/icon_128x128.png" width="112" alt="Slapss app icon">
+<img src="docs/app-icon.png" width="112" alt="Slapss app icon">
 
 # Slapss
 
@@ -83,7 +83,7 @@ anything.** Those workarounds look like mistakes until you know why they're ther
 
 ## Building from source
 
-Requirements: macOS 14.6 or later to **run**, **Xcode 26 or later** to build.
+Requirements: macOS 15 or later to **run**, **Xcode 26 or later** to build.
 
 > **Xcode 26 is a hard requirement, not a suggestion.** The project sets
 > `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`, which makes every declaration

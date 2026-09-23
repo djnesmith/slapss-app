@@ -135,7 +135,7 @@ extension LocalizationManager {
 
         // Onboarding
         "onboarding.welcome.title":                 "Welcome to Slapss",
-        "onboarding.welcome.tagline":               "Your meeting, in your face.",
+        "onboarding.welcome.tagline":               "Full-screen meeting alerts for Mac",
         "onboarding.step.language.title":           "App language",
         "onboarding.step.language.body":            "Slapss is available in 7 languages. You can change this at any time in Settings.",
 
@@ -168,7 +168,7 @@ extension LocalizationManager {
         "onboarding.step.leadTime.body":            "How long before each meeting should we send you a heads-up?",
         "onboarding.step.launchAtLogin.title":      "Launch automatically",
         "onboarding.step.launchAtLogin.toggle":     "Open Slapss when I log in",
-        "onboarding.footer.step1Required":          "Complete step 1 to continue.",
+        "onboarding.footer.calendarStepRequired":   "Complete step %d to continue.",
         "onboarding.footer.accessDenied":           "Re-enable calendar access in System Settings.",
         "onboarding.footer.changeInPrefs":          "You can change any of these later in Preferences.",
         "onboarding.footer.getStarted":             "Get Started",
@@ -333,7 +333,7 @@ extension LocalizationManager {
         "settings.microsoft.signingIn":             "Giriş yapılıyor…",
 
         "onboarding.welcome.title":                 "Slapss'e Hoş Geldiniz",
-        "onboarding.welcome.tagline":               "Toplantıların tam yüzüne.",
+        "onboarding.welcome.tagline":               "Mac için tam ekran toplantı uyarıları",
         "onboarding.step.language.title":           "Uygulama dili",
         "onboarding.step.language.body":            "Slapss 7 dilde kullanılabilir. İstediğin zaman Ayarlar'dan değiştirebilirsin.",
 
@@ -366,7 +366,7 @@ extension LocalizationManager {
         "onboarding.step.leadTime.body":            "Her toplantıdan ne kadar önce bildirim gönderelim?",
         "onboarding.step.launchAtLogin.title":      "Otomatik başlatma",
         "onboarding.step.launchAtLogin.toggle":     "Oturum açıldığında Slapss'i başlat",
-        "onboarding.footer.step1Required":          "Devam etmek için 1. adımı tamamlayın.",
+        "onboarding.footer.calendarStepRequired":   "Devam etmek için %d. adımı tamamlayın.",
         "onboarding.footer.accessDenied":           "Sistem Ayarları'nda takvim erişimini yeniden etkinleştirin.",
         "onboarding.footer.changeInPrefs":          "Bunları daha sonra Tercihler'den değiştirebilirsiniz.",
         "onboarding.footer.getStarted":             "Başla",
@@ -528,7 +528,7 @@ extension LocalizationManager {
         "settings.microsoft.signingIn":             "Iniciando sesión…",
 
         "onboarding.welcome.title":                 "Bienvenido a Slapss",
-        "onboarding.welcome.tagline":               "Tu reunión, en tu cara.",
+        "onboarding.welcome.tagline":               "Alertas de reuniones a pantalla completa para Mac",
         "onboarding.step.language.title":           "Idioma de la app",
         "onboarding.step.language.body":            "Slapss está disponible en 7 idiomas. Puedes cambiarlo en cualquier momento en Ajustes.",
 
@@ -561,7 +561,7 @@ extension LocalizationManager {
         "onboarding.step.leadTime.body":            "¿Con cuánta antelación quieres recibir un aviso antes de cada reunión?",
         "onboarding.step.launchAtLogin.title":      "Inicio automático",
         "onboarding.step.launchAtLogin.toggle":     "Abrir Slapss al iniciar sesión",
-        "onboarding.footer.step1Required":          "Completa el paso 1 para continuar.",
+        "onboarding.footer.calendarStepRequired":   "Completa el paso %d para continuar.",
         "onboarding.footer.accessDenied":           "Vuelve a habilitar el acceso al calendario en Configuración del Sistema.",
         "onboarding.footer.changeInPrefs":          "Puedes cambiar cualquiera de estas opciones más tarde en Preferencias.",
         "onboarding.footer.getStarted":             "Comenzar",
@@ -723,7 +723,7 @@ extension LocalizationManager {
         "settings.microsoft.signingIn":             "Anmeldung läuft…",
 
         "onboarding.welcome.title":                 "Willkommen bei Slapss",
-        "onboarding.welcome.tagline":               "Dein Meeting, direkt im Blick.",
+        "onboarding.welcome.tagline":               "Vollbild-Terminerinnerung für Mac",
         "onboarding.step.language.title":           "App-Sprache",
         "onboarding.step.language.body":            "Slapss ist in 7 Sprachen verfügbar. Du kannst dies jederzeit in den Einstellungen ändern.",
 
@@ -756,7 +756,7 @@ extension LocalizationManager {
         "onboarding.step.leadTime.body":            "Wie lange vor jedem Meeting soll eine Benachrichtigung gesendet werden?",
         "onboarding.step.launchAtLogin.title":      "Automatisch starten",
         "onboarding.step.launchAtLogin.toggle":     "Slapss beim Anmelden öffnen",
-        "onboarding.footer.step1Required":          "Schritt 1 abschließen, um fortzufahren.",
+        "onboarding.footer.calendarStepRequired":   "Schritt %d abschließen, um fortzufahren.",
         "onboarding.footer.accessDenied":           "Kalenderzugriff in den Systemeinstellungen erneut aktivieren.",
         "onboarding.footer.changeInPrefs":          "Diese Einstellungen können später in den Einstellungen geändert werden.",
         "onboarding.footer.getStarted":             "Loslegen",
@@ -918,7 +918,7 @@ extension LocalizationManager {
         "settings.microsoft.signingIn":             "Accesso in corso…",
 
         "onboarding.welcome.title":                 "Benvenuto in Slapss",
-        "onboarding.welcome.tagline":               "La tua riunione, in faccia.",
+        "onboarding.welcome.tagline":               "Avvisi di riunione a schermo intero per Mac",
         "onboarding.step.language.title":           "Lingua dell'app",
         "onboarding.step.language.body":            "Slapss è disponibile in 7 lingue. Puoi cambiarlo in qualsiasi momento nelle Impostazioni.",
 
@@ -951,7 +951,7 @@ extension LocalizationManager {
         "onboarding.step.leadTime.body":            "Con quanto anticipo vuoi ricevere un avviso prima di ogni riunione?",
         "onboarding.step.launchAtLogin.title":      "Avvio automatico",
         "onboarding.step.launchAtLogin.toggle":     "Apri Slapss all'accesso",
-        "onboarding.footer.step1Required":          "Completa il passaggio 1 per continuare.",
+        "onboarding.footer.calendarStepRequired":   "Completa il passaggio %d per continuare.",
         "onboarding.footer.accessDenied":           "Riabilita l'accesso al Calendario in Impostazioni di Sistema.",
         "onboarding.footer.changeInPrefs":          "Puoi modificare queste impostazioni in seguito nelle Preferenze.",
         "onboarding.footer.getStarted":             "Inizia",
@@ -1113,7 +1113,7 @@ extension LocalizationManager {
         "settings.microsoft.signingIn":             "Connexion en cours…",
 
         "onboarding.welcome.title":                 "Bienvenue sur Slapss",
-        "onboarding.welcome.tagline":               "Votre réunion, en pleine face.",
+        "onboarding.welcome.tagline":               "Alertes de réunion plein écran pour Mac",
         "onboarding.step.language.title":           "Langue de l'app",
         "onboarding.step.language.body":            "Slapss est disponible en 7 langues. Vous pouvez changer cela à tout moment dans les Préférences.",
 
@@ -1146,7 +1146,7 @@ extension LocalizationManager {
         "onboarding.step.leadTime.body":            "Combien de temps avant chaque réunion souhaitez-vous recevoir un rappel ?",
         "onboarding.step.launchAtLogin.title":      "Démarrage automatique",
         "onboarding.step.launchAtLogin.toggle":     "Ouvrir Slapss à la connexion",
-        "onboarding.footer.step1Required":          "Complétez l'étape 1 pour continuer.",
+        "onboarding.footer.calendarStepRequired":   "Complétez l'étape %d pour continuer.",
         "onboarding.footer.accessDenied":           "Réactivez l'accès au Calendrier dans Réglages Système.",
         "onboarding.footer.changeInPrefs":          "Vous pouvez modifier tout ceci plus tard dans les Préférences.",
         "onboarding.footer.getStarted":             "Démarrer",
@@ -1307,7 +1307,7 @@ extension LocalizationManager {
         "settings.microsoft.signingIn":             "サインイン中…",
 
         "onboarding.welcome.title":                 "Slapssへようこそ",
-        "onboarding.welcome.tagline":               "ミーティングの瞬間を、目の前に。",
+        "onboarding.welcome.tagline":               "Mac向けフルスクリーン会議アラート",
         "onboarding.step.language.title":           "アプリの言語",
         "onboarding.step.language.body":            "Slapssは7言語に対応しています。設定からいつでも変更できます。",
 
@@ -1340,7 +1340,7 @@ extension LocalizationManager {
         "onboarding.step.leadTime.body":            "各ミーティングの何分前に事前通知を送りますか？",
         "onboarding.step.launchAtLogin.title":      "自動起動",
         "onboarding.step.launchAtLogin.toggle":     "ログイン時にSlapssを開く",
-        "onboarding.footer.step1Required":          "続けるにはステップ1を完了してください。",
+        "onboarding.footer.calendarStepRequired":   "続けるにはステップ%dを完了してください。",
         "onboarding.footer.accessDenied":           "システム設定でカレンダーへのアクセスを再度有効にしてください。",
         "onboarding.footer.changeInPrefs":          "これらの設定は後で環境設定からいつでも変更できます。",
         "onboarding.footer.getStarted":             "はじめる",

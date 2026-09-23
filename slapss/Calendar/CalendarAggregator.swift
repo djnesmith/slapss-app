@@ -115,6 +115,13 @@ final class CalendarAggregator: ObservableObject {
     ) async {
         guard !didStart else { return }
         didStart = true
+        #if DEBUG
+        if DemoMode.isDataActive {
+            setPermissionStateIfChanged(.granted)
+            publishSplit(merged: DemoMode.meetings)
+            return
+        }
+        #endif
         eventKit.enabledCalendarIdentifiers = enabledEventKitCalendars
         graph.enabledCalendarIDs = enabledGraphCalendars
         setPermissionStateIfChanged(mapAccessState(eventKit.accessState))
@@ -253,6 +260,9 @@ final class CalendarAggregator: ObservableObject {
     /// published; downstream observers (notably AlertScheduler) treat any
     /// emission as "everything changed" and do expensive work on each one.
     private func performRefresh() {
+        #if DEBUG
+        if DemoMode.isDataActive { publishSplit(merged: DemoMode.meetings); return }
+        #endif
         syncEventKitStateAndCatalog()
 
         // Cancel any in-flight refresh so they don't trample each other.
@@ -286,6 +296,9 @@ final class CalendarAggregator: ObservableObject {
     /// for every meeting on every tick — that ran ~12 times per minute and
     /// was the dominant CPU drain in v1.
     private func refreshEventKitOnly() {
+        #if DEBUG
+        if DemoMode.isDataActive { publishSplit(merged: DemoMode.meetings); return }
+        #endif
         let wasGranted = permissionState == .granted
         syncEventKitStateAndCatalog()
         guard permissionState == .granted else {

@@ -13,9 +13,9 @@
 //    7. Lead-time choice
 //    8. Launch-at-login opt-in
 //
-//  Visual direction follows the menu-bar popup: pastel sticker hero on a
-//  monochrome canvas, consistent typography and spacing tokens, brand mark
-//  rendered from the bundled AppIcon.
+//  Visual direction follows the 2.2.0 design language shared with the popup
+//  and the full-screen alert: a theme-mesh welcome card, glass step cards,
+//  pill-style step numbers and the alert's gradient CTA, on a calm canvas.
 //
 //  Lifecycle:
 //    - Opened automatically on first launch by `MenuBarLabel.task` when
@@ -127,13 +127,15 @@ struct OnboardingView: View {
 
     // MARK: - Hero
 
-    /// The signature welcome sticker — same visual family as the menu-bar
-    /// hero card, but oriented for a wide window: brand mark on the left,
-    /// title and tagline on the right.
+    /// The welcome card: the same theme-mesh surface as the popup's hero,
+    /// oriented for a wide window. Brand mark on the left, title and tagline
+    /// on the right. It previews the theme picked in step 2 live.
     private struct HeroStickerView: View {
-        @Environment(\.colorScheme) private var scheme
         @EnvironmentObject private var lm: LocalizationManager
         @EnvironmentObject private var settings: AppSettings
+        /// Drift only while the window is the key window, so an onboarding
+        /// window left open behind other apps doesn't keep redrawing.
+        @Environment(\.controlActiveState) private var activeState
 
         private var accents: AppTheme.Accents { settings.theme.accents }
 
@@ -152,70 +154,10 @@ struct OnboardingView: View {
                 Spacer(minLength: 0)
             }
             .padding(EdgeInsets(top: 20, leading: 20, bottom: 20, trailing: 20))
-            .background(cardBackground)
-            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .strokeBorder(borderColor, lineWidth: borderWidth)
-            )
-            .shadow(color: shadowColor, radius: shadowRadius, x: 0, y: shadowY)
+            .meshCard(theme: settings.theme, cornerRadius: 20, energy: 0.3,
+                      animating: activeState == .key)
             .padding(.horizontal, 24)
         }
-
-        @ViewBuilder
-        private var cardBackground: some View {
-            ZStack {
-                if scheme == .dark {
-                    LinearGradient(
-                        colors: [accents.heroBgDarkTop, accents.heroBgDarkBottom],
-                        startPoint: .top, endPoint: .bottom
-                    )
-                } else {
-                    accents.heroBgLight
-                }
-                // A pair of decorative blobs — fewer than the hero card so
-                // the welcome reads calmer than the live meeting card.
-                Circle()
-                    .fill(
-                        RadialGradient(
-                            gradient: Gradient(stops: [
-                                .init(color: accents.blob1, location: 0),
-                                .init(color: accents.blob1.opacity(0), location: 0.7)
-                            ]),
-                            center: .center, startRadius: 0, endRadius: 90
-                        )
-                    )
-                    .frame(width: 180, height: 180)
-                    .offset(x: -50, y: 40)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
-                Circle()
-                    .fill(
-                        RadialGradient(
-                            gradient: Gradient(stops: [
-                                .init(color: accents.blob2, location: 0),
-                                .init(color: accents.blob2.opacity(0), location: 0.7)
-                            ]),
-                            center: .center, startRadius: 0, endRadius: 70
-                        )
-                    )
-                    .frame(width: 140, height: 140)
-                    .offset(x: 40, y: -40)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-            }
-            .allowsHitTesting(false)
-        }
-
-        private var borderColor: Color {
-            scheme == .dark ? Tokens.heroBorderDark : Tokens.heroBorderLight
-        }
-        private var borderWidth: CGFloat { scheme == .dark ? 1 : 3 }
-        private var shadowColor: Color {
-            scheme == .dark
-                ? Color.black.opacity(0.6)
-                : Color(red: 58/255, green: 42/255, blue: 26/255, opacity: 0.18)
-        }
-        private var shadowRadius: CGFloat { scheme == .dark ? 14 : 10 }
-        private var shadowY: CGFloat { scheme == .dark ? 10 : 8 }
     }
 
     /// 56pt brand mark backed by the bundled AppIcon. The icon fills the
@@ -523,13 +465,9 @@ struct OnboardingView: View {
                         .font(.system(size: 14, weight: .semibold))
                         .padding(.horizontal, 20)
                         .padding(.vertical, 10)
-                        .foregroundStyle(Tokens.joinFg)
-                        .background(
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .fill(canFinishOnboarding ? settings.theme.accents.joinBg : Tokens.ink4)
-                        )
+                        .ctaFill(settings.theme.accents, cornerRadius: 10, enabled: canFinishOnboarding)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(SpringPressStyle())
                 .disabled(!canFinishOnboarding)
                 .clickCursor()
             }
@@ -544,7 +482,9 @@ struct OnboardingView: View {
         // permission they may never grant.
         if isGraphSignedIn { return lm["onboarding.footer.changeInPrefs"] }
         switch aggregator.permissionState {
-        case .notDetermined:  return lm["onboarding.footer.step1Required"]
+        // Numbered from the visible steps: language and theme come first, so
+        // a hardcoded "step 1" pointed at the wrong card.
+        case .notDetermined:  return lm.t("onboarding.footer.calendarStepRequired", stepNumber(.calendarAccess))
         case .denied, .restricted: return lm["onboarding.footer.accessDenied"]
         case .granted:        return lm["onboarding.footer.changeInPrefs"]
         }
@@ -616,8 +556,8 @@ struct OnboardingView: View {
 // MARK: - Step card
 
 /// A neutral container that hosts one onboarding step. Numbered badge on
-/// the left, title and content on the right. Background is `--paper-2` with
-/// a hairline `--line` border, matching the popover's section conventions.
+/// the left, title and content on the right. The popup's glass surface
+/// (paper fill, top-lit hairline edge).
 private struct StepCard<Content: View>: View {
     let number: Int
     let title: String
@@ -636,12 +576,7 @@ private struct StepCard<Content: View>: View {
             Spacer(minLength: 0)
         }
         .padding(EdgeInsets(top: 14, leading: 14, bottom: 14, trailing: 14))
-        .background(Tokens.paper2)
-        .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .stroke(Tokens.line, lineWidth: 1)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .glassSurface(cornerRadius: 14)
     }
 }
 
@@ -649,29 +584,21 @@ private struct NumberBadge: View {
     let number: Int
     @EnvironmentObject private var settings: AppSettings
     var body: some View {
+        // Styled like the popup hero's status pill: tinted fill, accent
+        // hairline, pill ink.
         Text("\(number)")
-            .font(.system(size: 13, weight: .bold))
-            // Was a hardcoded warm brown (0xA35A18) — that's exactly the
-            // sunset pillInk, so the themed token keeps v1 rendering intact.
+            .font(.system(size: 13, weight: .bold).monospacedDigit())
             .foregroundStyle(settings.theme.accents.pillInk)
             .frame(width: 26, height: 26)
-            .background(
-                LinearGradient(
-                    colors: [settings.theme.accents.brandGradTop,
-                             settings.theme.accents.brandGradBottom],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .background(Circle().fill(settings.theme.accents.pillBg))
+            .overlay(Circle().strokeBorder(settings.theme.accents.pulseDot.opacity(0.35), lineWidth: 1))
     }
 }
 
 // MARK: - Reusable bits
 
-/// The chunky dark-on-light primary button used inside step cards (Grant /
-/// Connect / Try again). Uses the same `joinBg`/`joinFg` palette as the
-/// popover hero's Join button so the visual vocabulary stays consistent.
+/// The primary button used inside step cards (Grant / Connect / Try again).
+/// Same gradient CTA as the popup's Join button and the full-screen alert.
 private struct PrimaryStepButton: View {
     let title: String
     let action: () -> Void
@@ -683,13 +610,9 @@ private struct PrimaryStepButton: View {
                 .font(.system(size: 13, weight: .semibold))
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
-                .foregroundStyle(Tokens.joinFg)
-                .background(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(settings.theme.accents.joinBg)
-                )
+                .ctaFill(settings.theme.accents, cornerRadius: 9)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(SpringPressStyle())
         .clickCursor()
     }
 }

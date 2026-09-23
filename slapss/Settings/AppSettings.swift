@@ -195,6 +195,10 @@ final class AppSettings: ObservableObject {
         self.enabledGraphCalendarIDs = Set(storedGraph)
 
         self.onboardingCompleted = defaults.bool(forKey: Key.onboardingCompleted)
+        #if DEBUG
+        // Assigned in init, so `didSet` doesn't persist it.
+        if DemoMode.skipsOnboarding { self.onboardingCompleted = true }
+        #endif
 
         // Default true. UserDefaults.bool returns false for missing keys, so
         // explicit object(forKey:) check is needed to distinguish "never set"

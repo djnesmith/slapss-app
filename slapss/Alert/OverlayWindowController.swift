@@ -2,16 +2,17 @@
 //  OverlayWindowController.swift
 //  slapss
 //
-//  The full-screen "in your face" alert window. Covers the entire screen, rises
+//  The full-screen alert window. Covers the entire screen, rises
 //  above the menu bar and other apps (including those in fullscreen mode), and
 //  appears across all Spaces.
 //
 //  Why not a SwiftUI Window scene: SwiftUI's window primitives don't expose
-//  the screen-saver-level / collection-behavior knobs we need to be truly
-//  "in your face." We host SwiftUI inside an NSWindow we configure manually.
+//  the screen-saver-level / collection-behavior knobs a true full-screen
+//  takeover needs. We host SwiftUI inside an NSWindow we configure manually.
 //
 
 import AppKit
+import Combine
 import SwiftUI
 
 @MainActor
@@ -47,7 +48,14 @@ final class OverlayWindowController {
         let lm: LocalizationManager
         /// Color theme captured at fire time — see `AlertView.theme`.
         let theme: AppTheme
+        /// Shared by every mirrored window so Return presses the button on
+        /// all of them.
+        let press = OverlayPressState()
     }
+
+    /// Window-level fades. The card's own choreography lives in `AlertView`.
+    private static let fadeInDuration = 0.25
+    private static let fadeOutDuration = 0.18
 
     func show(
         meeting: MeetingEvent,
@@ -74,12 +82,13 @@ final class OverlayWindowController {
 
         // Remember the frontmost app only when an alert isn't already up, so a
         // mid-alert rebuild doesn't capture the overlay itself.
-        if windows.isEmpty {
+        let isFreshAlert = windows.isEmpty
+        if isFreshAlert {
             previousApp = NSWorkspace.shared.frontmostApplication
         }
 
         activePresentation = presentation
-        buildWindows(for: presentation)
+        buildWindows(for: presentation, animateIn: isFreshAlert)
         registerScreenChangeObserver()
 
         // Become active *and* key so the overlay actually receives the ESC
@@ -92,8 +101,19 @@ final class OverlayWindowController {
         // The window on the primary screen becomes key (ESC target); the rest
         // just order front so they're visible on their displays.
         let keyWindow = windows.first(where: { $0.screen == NSScreen.main }) ?? windows.first
+        if isFreshAlert {
+            windows.forEach { $0.alphaValue = 0 }
+        }
         keyWindow?.makeKeyAndOrderFront(nil)
         windows.forEach { $0.orderFrontRegardless() }
+        if isFreshAlert {
+            let fading = windows
+            NSAnimationContext.runAnimationGroup { ctx in
+                ctx.duration = Self.fadeInDuration
+                ctx.timingFunction = CAMediaTimingFunction(name: .easeOut)
+                fading.forEach { $0.animator().alphaValue = 1 }
+            }
+        }
     }
 
     func hide() {
@@ -102,7 +122,7 @@ final class OverlayWindowController {
             screenChangeObserver = nil
         }
         activePresentation = nil
-        teardownWindows()
+        fadeOutAndTearDown()
 
         // Hand keyboard focus back to whatever the user was in before the alert
         // grabbed it. macOS often does this for an accessory app with no other
@@ -118,8 +138,9 @@ final class OverlayWindowController {
     /// each. All windows share the same action closures, so dismissing/joining/
     /// snoozing on any screen runs the same callback — which calls `hide()` and
     /// tears every window down together.
-    private func buildWindows(for presentation: Presentation) {
-        teardownWindows()
+    private func buildWindows(for presentation: Presentation, animateIn: Bool) {
+        tearDown(windows)
+        windows.removeAll()
 
         let allScreens = NSScreen.screens
         let targetScreens: [NSScreen] = presentation.mirrorOnAllScreens && !allScreens.isEmpty
@@ -136,7 +157,9 @@ final class OverlayWindowController {
                 onComplete: presentation.onComplete,
                 onDismiss: presentation.onDismiss,
                 onSnoozeMinutes: presentation.onSnoozeMinutes,
-                onSnoozeUntilEnd: presentation.onSnoozeUntilEnd
+                onSnoozeUntilEnd: presentation.onSnoozeUntilEnd,
+                animatesIn: animateIn,
+                press: presentation.press
             )
 
             // Host the SwiftUI tree in a view that always fills the window.
@@ -162,7 +185,13 @@ final class OverlayWindowController {
             // Return/Enter triggers the primary action — Complete for
             // reminders, Join for meetings (which itself just dismisses if
             // there's no detected join URL, so this is always safe to wire).
-            window.onPrimaryAction = presentation.onComplete ?? presentation.onJoin
+            let primary = presentation.onComplete ?? presentation.onJoin
+            window.onPrimaryAction = { [press = presentation.press] in
+                // Show the press, then act at once: the exit fade gives the
+                // squash time to be seen, so the join is never delayed for it.
+                press.primaryPressed = true
+                primary()
+            }
 
             windows.append(window)
         }
@@ -170,16 +199,40 @@ final class OverlayWindowController {
 
     /// Order out every window and release its SwiftUI hosting view. `orderOut`
     /// alone keeps the NSHostingView alive in `contentView`, which means
-    /// AlertView's 1-second `Timer.publish` and MeshBackground's blur
-    /// animations keep running off-screen — the dominant background CPU drain
-    /// once the user had dismissed an alert. Nulling each `contentView`
-    /// deallocates the SwiftUI tree so its timers cease.
-    private func teardownWindows() {
-        for window in windows {
+    /// AlertView's 1-second `Timer.publish` and MeshBackground's timeline
+    /// keep running off-screen — the dominant background CPU drain once the
+    /// user had dismissed an alert. Nulling each `contentView` deallocates
+    /// the SwiftUI tree so its timers cease.
+    private func tearDown(_ leaving: [OverlayWindow]) {
+        for window in leaving {
             window.orderOut(nil)
             window.contentView = nil
         }
+    }
+
+    /// Dismiss path: hand the current windows off, fade them, then tear them
+    /// down. `windows` is emptied immediately so a `show()` arriving during
+    /// the fade (next alert right behind this one) builds fresh windows that
+    /// this teardown can't touch. The leaving windows stop taking input at
+    /// once, so a second click or ESC during the fade can't fire twice.
+    private func fadeOutAndTearDown() {
+        let leaving = windows
         windows.removeAll()
+        guard !leaving.isEmpty else { return }
+        for window in leaving {
+            window.ignoresMouseEvents = true
+            window.onCancel = nil
+            window.onPrimaryAction = nil
+        }
+        NSAnimationContext.runAnimationGroup { ctx in
+            ctx.duration = Self.fadeOutDuration
+            ctx.timingFunction = CAMediaTimingFunction(name: .easeIn)
+            leaving.forEach { $0.animator().alphaValue = 0 }
+        }
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(Self.fadeOutDuration + 0.05))
+            self?.tearDown(leaving)
+        }
     }
 
     /// Reflow the overlay if displays are added/removed or rearranged while the
@@ -195,7 +248,7 @@ final class OverlayWindowController {
         ) { [weak self] _ in
             MainActor.assumeIsolated {
                 guard let self, let presentation = self.activePresentation else { return }
-                self.buildWindows(for: presentation)
+                self.buildWindows(for: presentation, animateIn: false)
                 let keyWindow = self.windows.first(where: { $0.screen == NSScreen.main }) ?? self.windows.first
                 keyWindow?.makeKeyAndOrderFront(nil)
                 self.windows.forEach { $0.orderFrontRegardless() }
@@ -219,6 +272,10 @@ final class OverlayWindowController {
         window.isMovable = false
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
+        // The alert is designed dark (dark mesh, white text). Without this
+        // the glass card's `.fullScreenUI` material follows a light system
+        // appearance and turns pale under white text.
+        window.appearance = NSAppearance(named: .darkAqua)
 
         // Above almost everything, including other apps in fullscreen.
         window.level = .screenSaver
@@ -233,6 +290,16 @@ final class OverlayWindowController {
 
         return window
     }
+}
+
+// MARK: - Press state
+
+/// Set when Return fires the primary action, so the Join/Complete button
+/// shows the same squash a mouse press would. One per alert; never reset,
+/// because the alert is torn down right after.
+@MainActor
+final class OverlayPressState: ObservableObject {
+    @Published var primaryPressed = false
 }
 
 // MARK: - Overlay window

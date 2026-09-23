@@ -40,9 +40,9 @@ final class PopoverVisibilityMonitor: ObservableObject {
                 self?.isVisible = true
             }
         )
-        // Popover window fires willClose when dismissed (click-outside or
-        // programmatic close). The window still exists at this point, so
-        // isMenuBarPopover can still identify it.
+        // willClose covers a programmatic close. A click-outside dismissal
+        // only hides the window and never sends it; see the occlusion
+        // observer below.
         observers.append(
             NotificationCenter.default.addObserver(
                 forName: NSWindow.willCloseNotification,
@@ -52,6 +52,24 @@ final class PopoverVisibilityMonitor: ObservableObject {
                 guard let window = notif.object as? NSWindow,
                       Self.isMenuBarPopover(window) else { return }
                 self?.isVisible = false
+            }
+        )
+        // The one that actually fires on close. MenuBarExtra hides its window
+        // instead of closing it, so `willClose` never arrives (observed on
+        // macOS 27, 2.2.0 work): `isVisible` stayed true after the first
+        // open and every visibility-gated animation kept running with the
+        // popover gone. Occlusion flips to not-visible on every hide, and
+        // also while something covers the popover, which is fine to pause.
+        observers.append(
+            NotificationCenter.default.addObserver(
+                forName: NSWindow.didChangeOcclusionStateNotification,
+                object: nil,
+                queue: .main
+            ) { [weak self] notif in
+                guard let window = notif.object as? NSWindow,
+                      Self.isMenuBarPopover(window) else { return }
+                let visible = window.occlusionState.contains(.visible)
+                if self?.isVisible != visible { self?.isVisible = visible }
             }
         )
     }

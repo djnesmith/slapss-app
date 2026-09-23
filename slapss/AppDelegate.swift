@@ -35,6 +35,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Must be called after the app finishes launching so MenuBarExtra has
         // had time to register its NSStatusItem with the system status bar.
         StatusMenuController.shared.setup()
+
+        #if DEBUG
+        DemoMode.startIfRequested()
+        #endif
     }
 
     /// Handles the OAuth callback URL (msauth.com.cancetin.slapss://auth).
@@ -91,3 +95,4 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
         completionHandler()
     }
 }
+

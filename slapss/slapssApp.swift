@@ -2,7 +2,7 @@
 //  slapssApp.swift
 //  slapss
 //
-//  Slapss — your meeting, in your face.
+//  Slapss — full-screen meeting alerts for Mac.
 //
 
 import SwiftUI
@@ -53,6 +53,33 @@ struct slapssApp: App {
         .windowResizability(.contentSize)
         .defaultSize(width: 480, height: 620)
 
+        #if DEBUG
+        // Demo only (`-SlapssDemoPopover`): the real popover content in a
+        // borderless window placed where the popover opens, because the
+        // MenuBarExtra itself can't be opened without a real click (see
+        // DemoMode). It sits right under the menu bar, so
+        // PopoverVisibilityMonitor treats it as the popover and its
+        // animations run.
+        Window("Slapss demo popover", id: WindowID.demoPopover) {
+            MenuBarContentView()
+                .environmentObject(aggregator)
+                .environmentObject(settings)
+                .environmentObject(scheduler)
+                .environmentObject(lm)
+                .environmentObject(popoverVisibility)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(.white.opacity(0.12), lineWidth: 1))
+        }
+        .windowStyle(.plain)
+        .windowLevel(.floating)
+        .windowResizability(.contentSize)
+        .defaultWindowPlacement { content, context in
+            let visible = context.defaultDisplay.visibleRect
+            let size = content.sizeThatFits(.unspecified)
+            return WindowPlacement(CGPoint(x: visible.maxX - size.width - 200, y: visible.minY + 6), size: size)
+        }
+        #endif
+
         Settings {
             SettingsView()
                 .environmentObject(aggregator)
@@ -66,4 +93,7 @@ struct slapssApp: App {
 /// string from elsewhere in the app (e.g. `openWindow(id:)`).
 enum WindowID {
     static let onboarding = "slapss.onboarding"
+    #if DEBUG
+    static let demoPopover = "slapss.demoPopover"
+    #endif
 }

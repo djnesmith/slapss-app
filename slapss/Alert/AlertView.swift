@@ -11,7 +11,8 @@
 //   - live:     meeting started ≤ 5 minutes ago
 //   - late:     meeting started > 5 minutes ago
 //
-//  The state drives the status pill, the dot animation, and the mesh palette.
+//  The state drives the status pill, the card's glow ring and the mesh's
+//  energy. The palette comes from the theme, not the state.
 //
 
 import AppKit
@@ -20,7 +21,7 @@ import SwiftUI
 
 // MARK: - Alert state
 
-enum AlertState {
+enum AlertState: Equatable {
     case upcoming
     case imminent
     case live
@@ -50,15 +51,6 @@ enum AlertState {
         }
     }
 
-    enum DotKind { case none, live, urgent }
-    var dotKind: DotKind {
-        switch self {
-        case .upcoming, .imminent: return .none
-        case .live: return .live
-        case .late: return .urgent
-        }
-    }
-
     // NOTE (theming): the backdrop palette is no longer derived from the alert
     // state — it comes from the user's theme (AppTheme.meshPalette), passed
     // into AlertView explicitly. The original v1 idea of per-state palettes
@@ -83,17 +75,49 @@ struct AlertView: View {
     let onDismiss: () -> Void
     let onSnoozeMinutes: (Int) -> Void
     let onSnoozeUntilEnd: () -> Void
+    /// False when the windows are rebuilt mid-alert (display plugged in or
+    /// rearranged): the card is already on screen, so the entrance
+    /// choreography must not replay.
+    var animatesIn = true
+    /// Lets the Return key press the primary button visibly. See
+    /// `OverlayPressState`.
+    @ObservedObject var press: OverlayPressState
 
     @EnvironmentObject private var lm: LocalizationManager
 
     @State private var tick = Date()
     @State private var snoozeOpen = false
+    /// Bumped on the transition into `.late`; drives a one-shot shake.
+    @State private var nudge = 0
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var state: AlertState {
         AlertState.compute(now: tick, start: meeting.startDate)
     }
+
+    /// How awake the scene is. Ramps from 0 to 0.5 over the last ten minutes
+    /// before `.imminent`, then steps up. Feeds the mesh drift and the glow
+    /// ring, never the palette: per-state palettes were tried in v1 and
+    /// flattened the scene (see the note on `AlertState`).
+    private var energy: Double {
+        switch state {
+        case .upcoming:
+            let untilStart = meeting.startDate.timeIntervalSince(tick)
+            return 0.5 * max(0, 1 - (untilStart - 60) / 600)
+        case .imminent: return 0.8
+        case .live, .late: return 1
+        }
+    }
+
+    private var statusText: String {
+        "\(lm[meeting.isReminder ? "alert.status.reminder" : "alert.status.meeting"]) · \(state.statusLabel(now: tick, start: meeting.startDate, lm: lm).uppercased())"
+    }
+
+    /// The window in which joining is the obvious next move — the Join
+    /// button gets its sheen and the card its glow ring.
+    private var isActionable: Bool { state != .upcoming }
 
     /// Themed accent set for the overlay CTA. Read from the passed-in theme
     /// (not the environment) — see the `theme` property note above.
@@ -101,7 +125,8 @@ struct AlertView: View {
 
     var body: some View {
         ZStack {
-            MeshBackground(palette: theme.meshPalette)
+            MeshBackground(palette: theme.meshPalette, energy: energy)
+                .animation(.easeInOut(duration: 1.5), value: energy)
 
             // Subtle ambient vignette so the screen edges aren't quite as bright
             // as the center where the card sits. Much lighter than a "dim" —
@@ -118,6 +143,19 @@ struct AlertView: View {
             card
                 .frame(maxWidth: 880)
                 .padding(56)
+                .reveal(animated: animatesIn, delay: 0.04, rise: 28, scale: 0.96)
+                // One-shot shake when the meeting tips into "late".
+                .keyframeAnimator(initialValue: 0.0, trigger: nudge) { content, x in
+                    content.offset(x: x)
+                } keyframes: { _ in
+                    KeyframeTrack {
+                        CubicKeyframe(-14, duration: 0.07)
+                        CubicKeyframe(11, duration: 0.08)
+                        CubicKeyframe(-7, duration: 0.08)
+                        CubicKeyframe(4, duration: 0.08)
+                        CubicKeyframe(0, duration: 0.12)
+                    }
+                }
         }
         // Always fill the whole screen and ignore the safe area (notch / menu
         // bar) so the centred card stays centred. Without this the root can
@@ -127,6 +165,9 @@ struct AlertView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .ignoresSafeArea()
         .onReceive(timer) { tick = $0 }
+        .onChange(of: state) { _, new in
+            if new == .late && !reduceMotion { nudge += 1 }
+        }
     }
 
     // MARK: - Card
@@ -153,6 +194,15 @@ struct AlertView: View {
             glassBackground
                 .clipShape(RoundedRectangle(cornerRadius: 32))
                 .overlay(glassBorder)
+                .overlay(
+                    GlowRing(
+                        colors: state == .late
+                            ? [Color(rgb: 0xe8633a), Color(rgb: 0xffb07a)]
+                            : [accents.overlayCtaTop, accents.overlayCtaBottom],
+                        cornerRadius: 32,
+                        active: isActionable
+                    )
+                )
         )
         .shadow(color: .black.opacity(0.55), radius: 80, x: 0, y: 30)
     }
@@ -222,35 +272,61 @@ struct AlertView: View {
 
     private var leftColumn: some View {
         VStack(alignment: .leading, spacing: 18) {
-            statePill
-            title
-            timeRow
-            metaRow
+            statePill.reveal(animated: animatesIn, delay: 0.16)
+            title.reveal(animated: animatesIn, delay: 0.22)
+            timeRow.reveal(animated: animatesIn, delay: 0.28)
+            metaRow.reveal(animated: animatesIn, delay: 0.34)
         }
     }
 
+    /// Dynamic-Island-style status capsule. Its width, tint and leading
+    /// indicator morph on every state change; the countdown digits roll.
     private var statePill: some View {
         HStack(spacing: 10) {
-            stateDot
+            stateIndicator
+                .transition(.scale(scale: 0.4).combined(with: .opacity))
             // "MEETING · IN 5 MIN" for calendar events, "REMINDER · …" for
             // EKReminders. Previously every alert said "REMINDER", which
             // collided with the app's actual Reminders support.
-            Text("\(lm[meeting.isReminder ? "alert.status.reminder" : "alert.status.meeting"]) · \(state.statusLabel(now: tick, start: meeting.startDate, lm: lm).uppercased())")
+            Text(statusText)
                 .font(.system(size: 12, weight: .semibold))
                 .tracking(1.4)
-                .foregroundStyle(.white.opacity(0.6))
+                .foregroundStyle(.white.opacity(state == .upcoming ? 0.6 : 0.85))
                 .lineLimit(1)
+                .contentTransition(.numericText(countsDown: true))
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(Capsule().fill(pillTint.opacity(state == .upcoming ? 0.08 : 0.18)))
+        .overlay(Capsule().strokeBorder(pillTint.opacity(state == .upcoming ? 0.14 : 0.4), lineWidth: 1))
+        .animation(.spring(duration: 0.5, bounce: 0.3), value: state)
+        .animation(.snappy(duration: 0.35), value: statusText)
+    }
+
+    private var pillTint: Color {
+        switch state {
+        case .upcoming: return .white
+        case .imminent: return accents.overlayCtaTop
+        case .live: return Color(rgb: 0x2da14a)
+        case .late: return Color(rgb: 0xe8633a)
         }
     }
 
     @ViewBuilder
-    private var stateDot: some View {
-        switch state.dotKind {
-        case .none:
-            EmptyView()
+    private var stateIndicator: some View {
+        switch state {
+        case .upcoming:
+            Image(systemName: "clock")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.6))
+        case .imminent:
+            Image(systemName: "bell.fill")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.white)
+                .symbolEffect(.wiggle, options: .repeat(.periodic(delay: 1.2)), isActive: !reduceMotion)
         case .live:
             PulsingDot(color: Color(rgb: 0x2da14a))
-        case .urgent:
+        case .late:
             PulsingDot(color: Color(rgb: 0xe8633a))
         }
     }
@@ -323,13 +399,16 @@ struct AlertView: View {
 
     private var rightColumn: some View {
         VStack(spacing: 14) {
-            if meeting.isReminder {
-                completeButton
-            } else {
-                joinButton
+            Group {
+                if meeting.isReminder {
+                    completeButton
+                } else {
+                    joinButton
+                }
             }
-            actionsRow
-            keyboardHint
+            .reveal(animated: animatesIn, delay: 0.28)
+            actionsRow.reveal(animated: animatesIn, delay: 0.34)
+            keyboardHint.reveal(animated: animatesIn, delay: 0.40)
         }
     }
 
@@ -383,9 +462,13 @@ struct AlertView: View {
                     RoundedRectangle(cornerRadius: 16)
                         .strokeBorder(.white.opacity(0.18), lineWidth: 1)
                 )
+                .overlay(
+                    CTASheen(active: isActionable)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                )
                 .shadow(color: accents.overlayCtaTop.opacity(0.6), radius: 20, x: 0, y: 6)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(CTAButtonStyle(forcePressed: press.primaryPressed))
             .clickCursor()
         }
     }
@@ -419,9 +502,13 @@ struct AlertView: View {
                     RoundedRectangle(cornerRadius: 16)
                         .strokeBorder(.white.opacity(0.18), lineWidth: 1)
                 )
+                .overlay(
+                    CTASheen(active: isActionable)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                )
                 .shadow(color: accents.overlayCtaTop.opacity(0.6), radius: 20, x: 0, y: 6)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(CTAButtonStyle(forcePressed: press.primaryPressed))
             .clickCursor()
         }
     }
@@ -454,7 +541,7 @@ struct AlertView: View {
             }
             .buttonStyle(.plain)
             .clickCursor()
-            .animation(.easeOut(duration: 0.16), value: snoozeOpen)
+            .animation(.spring(duration: 0.35, bounce: 0.3), value: snoozeOpen)
             .frame(maxWidth: .infinity)
 
             Button(action: onDismiss) {
@@ -482,14 +569,14 @@ struct AlertView: View {
                 snoozeDropdown
                     .offset(y: -58)
                     .transition(
-                        .opacity.combined(
-                            with: .scale(scale: 0.96, anchor: .bottomLeading)
-                        )
+                        .opacity
+                            .combined(with: .scale(scale: 0.9, anchor: .bottomLeading))
+                            .combined(with: .offset(y: 10))
                     )
                     .zIndex(1)
             }
         }
-        .animation(.easeOut(duration: 0.16), value: snoozeOpen)
+        .animation(.spring(duration: 0.35, bounce: 0.25), value: snoozeOpen)
     }
 
     // MARK: - Snooze dropdown
@@ -504,17 +591,19 @@ struct AlertView: View {
                 .padding(.top, 12)
                 .padding(.bottom, 6)
 
-            snoozeOption(label: lm["alert.snooze.1minute"])  { onSnoozeMinutes(1);  snoozeOpen = false }
-            snoozeOption(label: lm["alert.snooze.5minutes"]) { onSnoozeMinutes(5);  snoozeOpen = false }
-            snoozeOption(label: lm["alert.snooze.10minutes"]){ onSnoozeMinutes(10); snoozeOpen = false }
-            snoozeOption(label: lm["alert.snooze.15minutes"]){ onSnoozeMinutes(15); snoozeOpen = false }
-            snoozeOption(label: lm["alert.snooze.30minutes"]){ onSnoozeMinutes(30); snoozeOpen = false }
-            snoozeOption(label: lm["alert.snooze.1hour"])    { onSnoozeMinutes(60); snoozeOpen = false }
+            // Options cascade in, a beat apart. The dropdown is rebuilt on
+            // every open, so each `reveal` replays.
+            snoozeOption(label: lm["alert.snooze.1minute"])  { onSnoozeMinutes(1);  snoozeOpen = false }.reveal(delay: 0.02, rise: 6)
+            snoozeOption(label: lm["alert.snooze.5minutes"]) { onSnoozeMinutes(5);  snoozeOpen = false }.reveal(delay: 0.04, rise: 6)
+            snoozeOption(label: lm["alert.snooze.10minutes"]){ onSnoozeMinutes(10); snoozeOpen = false }.reveal(delay: 0.06, rise: 6)
+            snoozeOption(label: lm["alert.snooze.15minutes"]){ onSnoozeMinutes(15); snoozeOpen = false }.reveal(delay: 0.08, rise: 6)
+            snoozeOption(label: lm["alert.snooze.30minutes"]){ onSnoozeMinutes(30); snoozeOpen = false }.reveal(delay: 0.10, rise: 6)
+            snoozeOption(label: lm["alert.snooze.1hour"])    { onSnoozeMinutes(60); snoozeOpen = false }.reveal(delay: 0.12, rise: 6)
             // "Until end of meeting" doesn't apply to reminders — they're
             // an instant in time with no duration (startDate == endDate).
             if !meeting.isReminder {
                 Divider().padding(.vertical, 4)
-                snoozeOption(label: lm["alert.snooze.untilEnd"]) { onSnoozeUntilEnd(); snoozeOpen = false }
+                snoozeOption(label: lm["alert.snooze.untilEnd"]) { onSnoozeUntilEnd(); snoozeOpen = false }.reveal(delay: 0.14, rise: 6)
             }
         }
         .padding(6)
@@ -589,21 +678,8 @@ struct AlertView: View {
 
 extension View {
     /// Shows the pointing-hand "click" cursor while the mouse is over the view.
-    /// macOS 15+ uses the native `pointerStyle(.link)`. Older versions fall
-    /// back to driving NSCursor manually on hover transitions.
-    @ViewBuilder
     func clickCursor() -> some View {
-        if #available(macOS 15.0, *) {
-            self.pointerStyle(.link)
-        } else {
-            self.onHover { hovering in
-                if hovering {
-                    NSCursor.pointingHand.set()
-                } else {
-                    NSCursor.arrow.set()
-                }
-            }
-        }
+        pointerStyle(.link)
     }
 
     /// Subtle rounded background that fades in while hovered. Useful for
@@ -756,5 +832,161 @@ private struct Avatar: View {
                     .zIndex(2)
             }
         }
+    }
+}
+
+// MARK: - Motion helpers (2.2.0)
+
+extension View {
+    /// One-shot entrance: fades in and rises (optionally scales) into place
+    /// after `delay`. Under Reduce Motion only the fade remains. `animated:
+    /// false` renders in place immediately, for rebuilds of a view that is
+    /// already on screen.
+    func reveal(animated: Bool = true, delay: Double, rise: CGFloat = 14, scale: CGFloat = 1) -> some View {
+        modifier(Reveal(animated: animated, delay: delay, rise: rise, scale: scale))
+    }
+}
+
+private struct Reveal: ViewModifier {
+    let delay: Double
+    let rise: CGFloat
+    let scale: CGFloat
+    @State private var shown: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    init(animated: Bool, delay: Double, rise: CGFloat, scale: CGFloat) {
+        self.delay = delay
+        self.rise = rise
+        self.scale = scale
+        _shown = State(initialValue: !animated)
+    }
+
+    func body(content: Content) -> some View {
+        let settled = shown || reduceMotion
+        content
+            .opacity(shown ? 1 : 0)
+            .scaleEffect(settled ? 1 : scale)
+            .offset(y: settled ? 0 : rise)
+            .onAppear {
+                guard !shown else { return }
+                withAnimation(.spring(duration: 0.55, bounce: 0.2).delay(delay)) { shown = true }
+            }
+    }
+}
+
+/// Primary CTA feel: lifts slightly on hover, squashes on press. `forcePressed`
+/// lets the Return key show the same press the mouse would.
+private struct CTAButtonStyle: ButtonStyle {
+    var forcePressed = false
+
+    func makeBody(configuration: Configuration) -> some View {
+        CTABody(configuration: configuration, forcePressed: forcePressed)
+    }
+
+    private struct CTABody: View {
+        let configuration: ButtonStyleConfiguration
+        let forcePressed: Bool
+        @State private var hovering = false
+
+        var body: some View {
+            let pressed = configuration.isPressed || forcePressed
+            configuration.label
+                .scaleEffect(pressed ? 0.965 : (hovering ? 1.015 : 1))
+                .brightness(pressed ? -0.04 : (hovering ? 0.03 : 0))
+                .animation(.spring(duration: 0.3, bounce: 0.4), value: pressed)
+                .animation(.spring(duration: 0.3, bounce: 0.4), value: hovering)
+                .onHover { hovering = $0 }
+        }
+    }
+}
+
+/// A band of light that sweeps across the CTA every few seconds once the
+/// meeting is imminent or running — a nudge toward the one button that
+/// matters. Off under Reduce Motion.
+struct CTASheen: View {
+    let active: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        if active && !reduceMotion {
+            GeometryReader { geo in
+                let w = geo.size.width
+                PhaseAnimator([false, true]) { swept in
+                    LinearGradient(
+                        colors: [.clear, .white.opacity(0.28), .clear],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                    .frame(width: w * 0.35)
+                    .rotationEffect(.degrees(18))
+                    .offset(x: swept ? w * 1.1 : -w * 0.5)
+                } animation: { swept in
+                    // Sweep, then snap back invisibly and wait.
+                    swept ? .easeInOut(duration: 1.0).delay(2.2) : .linear(duration: 0)
+                }
+            }
+            .allowsHitTesting(false)
+            // The popover root disables animations; the sheen must still run.
+            .transaction { $0.disablesAnimations = false }
+        }
+    }
+}
+
+/// A comet of accent light running around the card's edge while the meeting
+/// is imminent or running (voice-assistant "listening" ring). A fixed
+/// angular gradient spins under a ring-shaped mask, so each frame is only a
+/// rotation. The first version rebuilt and re-blurred the gradient per frame
+/// in a TimelineView and doubled the overlay's CPU (measured, see the
+/// engineering log for 2.2.0).
+///
+/// The ring is removed from the hierarchy when inactive rather than faded
+/// to zero or given a nil animation: a `repeatForever` rotation kept running
+/// either way, which in the popover (whose view graph never goes away)
+/// meant ~4% CPU with the popover closed.
+struct GlowRing: View {
+    let colors: [Color]
+    let cornerRadius: CGFloat
+    let active: Bool
+
+    var body: some View {
+        ZStack {
+            if active {
+                SpinningRing(colors: colors, cornerRadius: cornerRadius)
+                    .transition(.opacity)
+            }
+        }
+        .animation(.easeInOut(duration: 1.2), value: active)
+        .allowsHitTesting(false)
+        // Also used in the popover, whose root disables animations.
+        .transaction { $0.disablesAnimations = false }
+    }
+}
+
+private struct SpinningRing: View {
+    let colors: [Color]
+    let cornerRadius: CGFloat
+    @State private var spinning = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        GeometryReader { geo in
+            let side = hypot(geo.size.width, geo.size.height)
+            AngularGradient(colors: colors + [.clear, .clear, .clear] + [colors[0]], center: .center)
+                .frame(width: side, height: side)
+                .rotationEffect(.degrees(spinning ? 360 : 0))
+                .animation(.linear(duration: 8).repeatForever(autoreverses: false), value: spinning)
+                .position(x: geo.size.width / 2, y: geo.size.height / 2)
+        }
+        .mask {
+            ZStack {
+                RoundedRectangle(cornerRadius: cornerRadius)
+                    .strokeBorder(lineWidth: 6)
+                    .blur(radius: 12)
+                    .opacity(0.8)
+                RoundedRectangle(cornerRadius: cornerRadius)
+                    .strokeBorder(lineWidth: 1.5)
+            }
+        }
+        .onAppear { spinning = !reduceMotion }
     }
 }

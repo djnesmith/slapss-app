@@ -2,9 +2,9 @@
 //  Theme.swift
 //  slapss
 //
-//  App-wide color theme. A theme swaps the ACCENT layer only — the popover's
-//  blobs/dots, pill, hero card tints, join button accent, and the full-screen
-//  overlay's mesh palette. Neutral surfaces and ink (Tokens.paper*/ink*) are
+//  App-wide color theme. A theme swaps the ACCENT layer only — the mesh
+//  palette (full-screen alert, popover hero, onboarding and About cards),
+//  the pill, hero text tints and the gradient CTA. Neutral surfaces and ink (Tokens.paper*/ink*) are
 //  intentionally theme-independent, as is light/dark mode, which continues to
 //  follow the system appearance on an orthogonal axis.
 //
@@ -39,16 +39,6 @@ enum AppTheme: String, CaseIterable, Identifiable {
         }
     }
 
-    /// Flat swatch colors for theme pickers — the overlay mesh colors, which
-    /// read as the theme's identity at a glance.
-    var swatchColors: [Color] {
-        switch self {
-        case .sunset: return [Color(rgb: 0xE06B3A), Color(rgb: 0xA83A6B), Color(rgb: 0x5A3A8A)]
-        case .ocean:  return [Color(rgb: 0x2D6CB0), Color(rgb: 0x5A3A8A), Color(rgb: 0x3A8A7A)]
-        case .forest: return [Color(rgb: 0x3A8A5A), Color(rgb: 0x2D6C5A), Color(rgb: 0x5A6C3A)]
-        }
-    }
-
     var accents: Accents {
         switch self {
         case .sunset: return Self.sunsetAccents
@@ -57,14 +47,10 @@ enum AppTheme: String, CaseIterable, Identifiable {
         }
     }
 
-    /// The themed color set. Field names mirror the former Tokens entries;
-    /// blob1/2/3 correspond to the old blobPeach/blobRose/blobSky roles
-    /// (large → small in BlobsBackground).
+    /// The themed color set. Field names mirror the former Tokens entries.
+    /// The pastel blob colors, the brand gradient, the dark hero's top color
+    /// and `joinBg` went with the sticker hero in 2.2.0.
     struct Accents {
-        let blob1: Color
-        let blob2: Color
-        let blob3: Color
-
         let pillBg: Color
         let pillInk: Color
         let pulseDot: Color
@@ -73,21 +59,13 @@ enum AppTheme: String, CaseIterable, Identifiable {
         let heroTime: Color
         let heroMeta: Color
 
+        /// Base colors the mesh falls off into on the light / dark cards.
         let heroBgLight: Color
-        let heroBgDarkTop: Color
         let heroBgDarkBottom: Color
 
-        let brandGradTop: Color
-        let brandGradBottom: Color
-
-        /// Join/primary button fill. Light mode stays neutral ink across all
-        /// themes; dark mode carries the theme accent (matches v1 behavior
-        /// where dark used the orange accent).
-        let joinBg: Color
-
-        /// Full-screen overlay primary CTA (Join/Complete) — gradient fill and
-        /// glow. Flat colors (no light/dark variant): the overlay backdrop is
-        /// always the dark mesh. Previously hardcoded green (0x2da14a) across
+        /// The primary CTA everywhere since 2.2.0 (alert, popover Join,
+        /// onboarding buttons): gradient fill and glow. Flat colors, no
+        /// light/dark variant. Previously hardcoded green (0x2da14a) across
         /// all themes; themed in 1.8.1 so the CTA follows the accent and
         /// doesn't sink into the forest theme's green mesh.
         let overlayCtaTop: Color
@@ -98,9 +76,6 @@ enum AppTheme: String, CaseIterable, Identifiable {
 
     /// Identical to the pre-theming values — existing users see no change.
     private static let sunsetAccents = Accents(
-        blob1: .themed(light: 0xFFE2C2, dark: 0xE8732A, darkAlpha: 0.45),
-        blob2: .themed(light: 0xF7D3DF, dark: 0xB45A8C, darkAlpha: 0.40),
-        blob3: .themed(light: 0xC9E3F5, dark: 0x508CB4, darkAlpha: 0.35),
         pillBg: .themed(light: 0xFFFFFF, lightAlpha: 0.55, dark: 0xFFD6A8, darkAlpha: 0.12),
         pillInk: .themed(light: 0xA35A18, dark: 0xFFD6A8),
         pulseDot: .themed(light: 0xE8732A, dark: 0xFF9447),
@@ -108,19 +83,12 @@ enum AppTheme: String, CaseIterable, Identifiable {
         heroTime: .themed(light: 0x7A5230, dark: 0xD8C5A8),
         heroMeta: .themed(light: 0x7A5230, dark: 0xC9B89A),
         heroBgLight: Color(rgb: 0xFFF7EC),
-        heroBgDarkTop: Color(rgb: 0x2E2738),
         heroBgDarkBottom: Color(rgb: 0x25202D),
-        brandGradTop: .themed(light: 0xFFE2C2, dark: 0xFFE2C2, darkAlpha: 0.85),
-        brandGradBottom: .themed(light: 0xF7D3DF, dark: 0xF7D3DF, darkAlpha: 0.85),
-        joinBg: .themed(light: 0x1F1D2B, dark: 0xFF9447),
         overlayCtaTop: Color(rgb: 0xE8732A),
         overlayCtaBottom: Color(rgb: 0xC2571F)
     )
 
     private static let oceanAccents = Accents(
-        blob1: .themed(light: 0xC9E3F5, dark: 0x2E7CC4, darkAlpha: 0.45),
-        blob2: .themed(light: 0xD9D3F2, dark: 0x7A5AC0, darkAlpha: 0.40),
-        blob3: .themed(light: 0xC8EAE2, dark: 0x3A9A8A, darkAlpha: 0.35),
         pillBg: .themed(light: 0xFFFFFF, lightAlpha: 0.55, dark: 0xA8D4FF, darkAlpha: 0.12),
         pillInk: .themed(light: 0x1B5E8A, dark: 0xA8D4FF),
         pulseDot: .themed(light: 0x2E7CC4, dark: 0x5CA8E8),
@@ -128,19 +96,12 @@ enum AppTheme: String, CaseIterable, Identifiable {
         heroTime: .themed(light: 0x30527A, dark: 0xA8C4DC),
         heroMeta: .themed(light: 0x30527A, dark: 0x9AB6CC),
         heroBgLight: Color(rgb: 0xEFF6FC),
-        heroBgDarkTop: Color(rgb: 0x27303E),
         heroBgDarkBottom: Color(rgb: 0x1F2733),
-        brandGradTop: .themed(light: 0xC9E3F5, dark: 0xC9E3F5, darkAlpha: 0.85),
-        brandGradBottom: .themed(light: 0xD9D3F2, dark: 0xD9D3F2, darkAlpha: 0.85),
-        joinBg: .themed(light: 0x1F1D2B, dark: 0x5CA8E8),
         overlayCtaTop: Color(rgb: 0x2E7CC4),
         overlayCtaBottom: Color(rgb: 0x1F5C99)
     )
 
     private static let forestAccents = Accents(
-        blob1: .themed(light: 0xD6EBD2, dark: 0x3E9A5C, darkAlpha: 0.45),
-        blob2: .themed(light: 0xE9EFC8, dark: 0x8A9A3A, darkAlpha: 0.40),
-        blob3: .themed(light: 0xFFE9C4, dark: 0xC08A3A, darkAlpha: 0.35),
         pillBg: .themed(light: 0xFFFFFF, lightAlpha: 0.55, dark: 0xC2E8C2, darkAlpha: 0.12),
         pillInk: .themed(light: 0x2E6B42, dark: 0xC2E8C2),
         pulseDot: .themed(light: 0x3E9A5C, dark: 0x55B878),
@@ -148,11 +109,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
         heroTime: .themed(light: 0x3E6B4C, dark: 0xAECDAE),
         heroMeta: .themed(light: 0x3E6B4C, dark: 0x9FC09F),
         heroBgLight: Color(rgb: 0xF2F8EF),
-        heroBgDarkTop: Color(rgb: 0x263229),
         heroBgDarkBottom: Color(rgb: 0x1E2A21),
-        brandGradTop: .themed(light: 0xD6EBD2, dark: 0xD6EBD2, darkAlpha: 0.85),
-        brandGradBottom: .themed(light: 0xE9EFC8, dark: 0xE9EFC8, darkAlpha: 0.85),
-        joinBg: .themed(light: 0x1F1D2B, dark: 0x55B878),
         overlayCtaTop: Color(rgb: 0x3E9A5C),
         overlayCtaBottom: Color(rgb: 0x2E7444)
     )
@@ -184,8 +141,8 @@ private extension Color {
 
 // MARK: - Theme picker (shared by Settings and Onboarding)
 
-/// Three theme cards in a row: a stack of the theme's mesh swatch colors plus
-/// the localized name. The selected card gets an accent border. Writes
+/// Three theme cards in a row: a still of the theme's alert mesh plus the
+/// localized name. The selected card gets an accent border. Writes
 /// straight to `AppSettings.theme`, so both call sites get live preview
 /// behavior for free (the popover hero, onboarding hero, and number badges
 /// all re-render from the same published property).
@@ -217,29 +174,25 @@ private struct ThemeSwatchCard: View {
     var body: some View {
         Button(action: action) {
             VStack(spacing: 6) {
-                HStack(spacing: -6) {
-                    ForEach(Array(theme.swatchColors.enumerated()), id: \.offset) { _, color in
-                        Circle()
-                            .fill(color)
-                            .frame(width: 18, height: 18)
-                            .overlay(Circle().strokeBorder(.white.opacity(0.6), lineWidth: 1))
-                    }
-                }
+                // A still frame of the theme's actual full-screen alert
+                // backdrop, so the choice shows what will hit the screen.
+                MeshBackground(palette: theme.meshPalette, energy: 0.4, animating: false)
+                    .frame(height: 34)
+                    .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
                 Text(label)
                     .font(.system(size: 11, weight: isSelected ? .semibold : .regular))
                     .lineLimit(1)
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 8)
+            .padding(6)
             .frame(maxWidth: .infinity)
             .background(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                RoundedRectangle(cornerRadius: 11, style: .continuous)
                     .fill(Color.secondary.opacity(isSelected ? 0.10 : 0.04))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                RoundedRectangle(cornerRadius: 11, style: .continuous)
                     .strokeBorder(
-                        isSelected ? Color.accentColor : Color.secondary.opacity(0.25),
+                        isSelected ? theme.accents.overlayCtaTop : Color.secondary.opacity(0.25),
                         lineWidth: isSelected ? 2 : 1
                     )
             )
@@ -248,5 +201,93 @@ private struct ThemeSwatchCard: View {
         .buttonStyle(.plain)
         .clickCursor()
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+}
+
+// MARK: - Shared surfaces (2.2.0 design language)
+
+extension View {
+    /// The design language's "brand moment" surface: the theme's mesh (a
+    /// small, calmer version of the full-screen alert's backdrop) under a
+    /// specular top highlight, clipped to a continuous rounded rect with a
+    /// top-lit hairline edge and a soft shadow. Used by the popover hero,
+    /// the onboarding welcome card and the About banner.
+    ///
+    /// `animating` must follow real visibility wherever the view can outlive
+    /// what's on screen (the popover, a window left open behind others).
+    func meshCard(theme: AppTheme, cornerRadius: CGFloat, energy: Double = 0, animating: Bool) -> some View {
+        modifier(MeshCard(theme: theme, cornerRadius: cornerRadius, energy: energy, animating: animating))
+    }
+
+    /// The alert's primary-button fill, at any size: theme gradient, light
+    /// hairline, soft glow in its own color. Disabled falls back to a flat
+    /// neutral fill with no glow.
+    func ctaFill(_ accents: AppTheme.Accents, cornerRadius: CGFloat, enabled: Bool = true) -> some View {
+        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        return self
+            .foregroundStyle(.white)
+            .background(
+                enabled
+                    ? AnyShapeStyle(LinearGradient(colors: [accents.overlayCtaTop, accents.overlayCtaBottom],
+                                                   startPoint: .top, endPoint: .bottom))
+                    : AnyShapeStyle(Color.secondary.opacity(0.45)),
+                in: shape
+            )
+            .overlay(shape.strokeBorder(.white.opacity(enabled ? 0.18 : 0.08), lineWidth: 1))
+            .shadow(color: enabled ? accents.overlayCtaTop.opacity(0.35) : .clear, radius: 8, x: 0, y: 3)
+    }
+}
+
+private struct MeshCard: ViewModifier {
+    let theme: AppTheme
+    let cornerRadius: CGFloat
+    let energy: Double
+    let animating: Bool
+    @Environment(\.colorScheme) private var scheme
+
+    func body(content: Content) -> some View {
+        let dark = scheme == .dark
+        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        content
+            .background {
+                ZStack {
+                    MeshBackground(
+                        palette: theme.meshPalette,
+                        energy: energy,
+                        base: dark ? theme.accents.heroBgDarkBottom : theme.accents.heroBgLight,
+                        // Calmer than the alert so text on it stays readable;
+                        // a pastel wash in light mode.
+                        tint: dark ? 0.55 : 0.3,
+                        animating: animating
+                    )
+                    .animation(.easeInOut(duration: 1.5), value: energy)
+                    .transaction { $0.disablesAnimations = false }
+
+                    LinearGradient(
+                        colors: [.white.opacity(dark ? 0.10 : 0.45), .white.opacity(0)],
+                        startPoint: .top,
+                        endPoint: UnitPoint(x: 0.5, y: 0.45)
+                    )
+                    if dark {
+                        // Keeps lower text readable where the mesh is brightest.
+                        LinearGradient(colors: [.black.opacity(0), .black.opacity(0.25)],
+                                       startPoint: .top, endPoint: .bottom)
+                    }
+                }
+                .allowsHitTesting(false)
+            }
+            .clipShape(shape)
+            .overlay(
+                shape.strokeBorder(
+                    LinearGradient(
+                        colors: [.white.opacity(dark ? 0.22 : 0.9),
+                                 dark ? .white.opacity(0.05) : Color(rgb: 0x1F1D2B, alpha: 0.10)],
+                        startPoint: .top, endPoint: .bottom
+                    ),
+                    lineWidth: 1
+                )
+            )
+            .shadow(color: dark ? .black.opacity(0.55) : Color(rgb: 0x3A2A1A, alpha: 0.14),
+                    radius: dark ? 14 : 10, x: 0, y: dark ? 8 : 4)
     }
 }

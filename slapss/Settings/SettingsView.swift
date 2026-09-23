@@ -16,6 +16,8 @@ struct SettingsView: View {
     @EnvironmentObject private var lm: LocalizationManager
 
     @Environment(\.openWindow) private var openWindow
+    /// The About banner's mesh drifts only while this window is key.
+    @Environment(\.controlActiveState) private var activeState
 
     @State private var launchAtLogin: Bool = LaunchAtLoginManager.isEnabled
     /// Whether the Accessibility grant is still missing, for the affordance in
@@ -413,6 +415,39 @@ struct SettingsView: View {
     /// About/version/support content doesn't relate to day-to-day settings
     /// anyway, so it gets its own tab rather than a taller window.
     private var aboutTab: some View {
+        VStack(spacing: 0) {
+            aboutBanner
+            aboutForm
+        }
+    }
+
+    /// Brand card on top of About, in the same theme-mesh surface as the
+    /// popup's hero and the onboarding welcome card. Reuses the onboarding
+    /// tagline, so no new strings.
+    private var aboutBanner: some View {
+        HStack(spacing: 14) {
+            Image(nsImage: NSApplication.shared.applicationIconImage)
+                .resizable()
+                .interpolation(.high)
+                .frame(width: 44, height: 44)
+                .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Slapss")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(settings.theme.accents.heroTitle)
+                Text(lm["onboarding.welcome.tagline"])
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(settings.theme.accents.heroTime)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(14)
+        .meshCard(theme: settings.theme, cornerRadius: 14, energy: 0.3, animating: activeState == .key)
+        .padding(.horizontal, 20)
+        .padding(.top, 14)
+    }
+
+    private var aboutForm: some View {
         Form {
             Section(lm["settings.section.about"]) {
                 LabeledContent(lm["settings.about.version"]) {

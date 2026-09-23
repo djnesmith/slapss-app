@@ -64,17 +64,19 @@ enum Tokens {
     static let line2   = Color(light: .hex(0x1F1D2B, opacity: 0.10),
                                dark:  .hex(0xFFFFFF, opacity: 0.10))
 
-    // Sticker hero — neutral border (theme-independent)
-    static let heroBorderLight   = Color.white
-    static let heroBorderDark    = Color.hex(0xFFFFFF, opacity: 0.08)
+    // Glass edge (2.2.0): the overlay card's hairline, brighter at the top
+    // and fading down, used on every raised surface (popover, onboarding).
+    static let edgeTop    = Color(light: .hex(0xFFFFFF, opacity: 0.9),
+                                  dark:  .hex(0xFFFFFF, opacity: 0.12))
+    static let edgeBottom = Color(light: .hex(0x1F1D2B, opacity: 0.10),
+                                  dark:  .hex(0xFFFFFF, opacity: 0.03))
 
-    // Join button foreground (neutral — the fill is themed, see
-    // AppTheme.Accents.joinBg)
+    // Ink on an accent fill (the Presenting toggle when on).
     static let joinFg  = Color(light: .hex(0xFFFFFF), dark: .hex(0x1A1820))
 
     // NOTE (theming): the accent layer that used to live here —
-    // pillBg/pillInk/pulseDot, heroTitle/Time/Meta, heroBg*, blobPeach/Rose/
-    // Sky (now blob1/2/3), brandGrad*, joinBg — moved to `AppTheme.Accents`
+    // pillBg/pillInk/pulseDot, heroTitle/Time/Meta, heroBg* — moved to
+    // `AppTheme.Accents`
     // (Theme.swift). Views read them via `settings.theme.accents.<name>` so
     // theme switches re-render through the ObservableObject path.
 }
@@ -194,15 +196,11 @@ struct MenuBarContentView: View {
                 } label: {
                     Text(lm["popover.stub.openSetup"])
                         .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(Tokens.joinFg)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 8)
-                        .background(
-                            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .fill(settings.theme.accents.joinBg)
-                        )
+                        .ctaFill(settings.theme.accents, cornerRadius: 9)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(SpringPressStyle())
                 .clickCursor()
             }
             .padding(.horizontal, 16)
@@ -509,7 +507,7 @@ struct MenuBarContentView: View {
     /// This avoids inspecting any private class names while still being
     /// precise enough that other floating panels (e.g. color picker) are
     /// excluded by the positional constraint.
-    private static func menuBarExtraWindows() -> [NSWindow] {
+    static func menuBarExtraWindows() -> [NSWindow] {
         guard let screen = NSScreen.main else { return [] }
         // Bottom edge of the system menu bar in screen coordinates.
         let menuBarBottom = screen.frame.maxY - NSStatusBar.system.thickness
@@ -603,6 +601,26 @@ private struct BrandLogoView: View {
     }
 }
 
+// MARK: - Glass surface
+
+extension View {
+    /// A raised surface in the overlay's glass language: fill plus the
+    /// top-lit hairline edge.
+    func glassSurface(cornerRadius: CGFloat, fill: Color = Tokens.paper2) -> some View {
+        background(
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(fill)
+                .overlay(
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        .strokeBorder(
+                            LinearGradient(colors: [Tokens.edgeTop, Tokens.edgeBottom], startPoint: .top, endPoint: .bottom),
+                            lineWidth: 1
+                        )
+                )
+        )
+    }
+}
+
 // MARK: - Hide reminder bar
 
 private struct HideReminderBar: View {
@@ -626,16 +644,8 @@ private struct HideReminderBar: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 9)
-            .background(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(Tokens.paper2)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .stroke(Tokens.line, lineWidth: 1)
-                    )
-            )
-            .opacity(hovering ? 0.85 : 1.0)
-            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .glassSurface(cornerRadius: 12, fill: hovering ? Tokens.paper3 : Tokens.paper2)
+            .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
         .buttonStyle(.plain)
         .padding(.horizontal, 12)
@@ -718,13 +728,22 @@ enum SystemSettingsOpener {
     }
 }
 
-// MARK: - Hero card (sticker)
+// MARK: - Hero card
 
-/// The signature element: a slightly tilted pastel "sticker" with a die-cut
-/// white border, decorative blobs, and a folded-corner detail.
+/// The signature element, in the overlay's design language since 2.2.0: a
+/// flat glass card over a small version of the overlay's theme mesh, a
+/// capsule status pill, and the overlay's gradient CTA. As the meeting gets
+/// close the mesh wakes up, and inside the join window (5 minutes either
+/// side of the start) the card gets the overlay's glow ring and the Join
+/// button its sheen, so the popover previews what is about to hit the screen.
+///
+/// Replaced the tilted pastel "sticker" (blobs, floating dots, folded corner)
+/// that shipped until 2.1.x. The tilt was what forced the `drawingGroup`
+/// workaround for the mirrored-glyph bug; with no rotation and nothing
+/// NSView-backed in the card, only the text `compositingGroup` stays.
 ///
 /// All the visual character of the popup lives in this view. Everything
-/// below the hero (sections, rows, footer) is intentionally monochrome.
+/// below the hero (sections, rows, footer) stays quiet.
 private struct HeroCardView: View {
     let event: MeetingEvent
     let now: Date
@@ -739,91 +758,73 @@ private struct HeroCardView: View {
     @EnvironmentObject private var settings: AppSettings
 
     private var accents: AppTheme.Accents { settings.theme.accents }
+    private static let radius: CGFloat = 16
+
+    private var untilStart: TimeInterval { event.startDate.timeIntervalSince(now) }
+
+    /// Same scale as the overlay's: calm a quarter of an hour out, fully
+    /// awake at the start.
+    private var energy: Double {
+        untilStart <= 0 ? 1 : max(0, 1 - untilStart / (15 * 60))
+    }
+
+    /// Five minutes either side of the start: when joining is the obvious
+    /// next move.
+    private var inJoinWindow: Bool { untilStart <= 5 * 60 && untilStart > -5 * 60 }
 
     var body: some View {
-        cardContent
-            .background(cardBackground)
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        content
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .meshCard(theme: settings.theme, cornerRadius: Self.radius,
+                      energy: energy, animating: popoverVisibility.isVisible)
             .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .strokeBorder(borderColor, lineWidth: borderWidth)
+                GlowRing(
+                    colors: [accents.overlayCtaTop, accents.overlayCtaBottom],
+                    cornerRadius: Self.radius,
+                    active: inJoinWindow && popoverVisibility.isVisible
+                )
             )
-            .shadow(color: shadowColor, radius: shadowRadius, x: 0, y: shadowY)
-            // `.compositingGroup()` rasterises the card (text + shadows +
-            // animated gradients) into a single offscreen layer BEFORE the
-            // -0.6° rotation is applied. Without this, SwiftUI on macOS can
-            // re-rasterise individual subviews (notably the text) inside the
-            // already-rotated coordinate space, and the gradient siblings'
-            // NSView-backed coordinate flip leaks through onto the glyphs —
-            // which is what produced the mirrored "JOIN" / "15m" text in v1.
-            .compositingGroup()
-            .rotationEffect(.degrees(-0.6), anchor: .top)
-            .padding(EdgeInsets(top: 8, leading: 14, bottom: 12, trailing: 14))
-            // Drive pulse from real popover visibility — see BlobsBackground
-            // for why onAppear/onDisappear cannot be used here.
-            // The actual animation curve is attached to the pulse Circle via
-            // `.animation(_:value:)` below; this plain assignment avoids
-            // creating a global animation transaction.
+            .padding(EdgeInsets(top: 4, leading: 12, bottom: 12, trailing: 12))
+            // Drive pulse from real popover visibility — onAppear/onDisappear
+            // never fire on popover close (see CLAUDE.md). The curve is on
+            // the pulse Circle's own `.animation(_:value:)`.
             .onChange(of: popoverVisibility.isVisible) { _, isVisible in
                 pulse = isVisible
             }
     }
 
-    private var cardContent: some View {
-        ZStack(alignment: .topLeading) {
-            BlobsBackground()                     // z-index 0 — large soft blobs
-            FloatingDotsBackground()              // z-index 1 — small drifting dots
-            FoldCornerOverlay()                   // sits on top-right
-            VStack(alignment: .leading, spacing: 0) {
-                upNextPill
-                Text(event.title)
-                    .font(.system(size: 18, weight: .semibold))
-                    .tracking(-0.3)
-                    .foregroundStyle(accents.heroTitle)
-                    .padding(.top, 8)
-                    .lineLimit(2)
-
-                Text(timeLine)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(accents.heroTime)
-                    .padding(.top, 4)
-
-                metaList.padding(.top, 12)
-
-                if let url = event.joinURL {
-                    JoinButton(url: url, scheme: scheme, authUser: authUser)
-                        .padding(.top, 14)
-                }
-            }
-            .padding(EdgeInsets(top: 16, leading: 16, bottom: 14, trailing: 16))
-            // Belt-and-suspenders: even with the outer `.compositingGroup()`
-            // on the rotation, isolate the text VStack into its own group so
-            // its glyph rasterisation never shares a backing layer with the
-            // animated blob/dot siblings underneath. This is the layer where
-            // the v1 mirror bug actually manifested.
-            .compositingGroup()
-        }
-        // Stop the ZStack from collapsing to its first child's intrinsic
-        // size between layout passes. The card has a min-width (padding +
-        // glyphs) but no max — anchoring with `.infinity` removes the
-        // "first sibling decides our coordinate system" race that the v1
-        // FloatingDotsBackground comment described.
-        .frame(maxWidth: .infinity)
-        // Nuclear fix for the coordinate-system flip bug. `.drawingGroup()`
-        // routes the ENTIRE ZStack (blobs, dots, text, icons, join button)
-        // through Metal's rendering pipeline, which is fully independent of
-        // NSView's isFlipped / CALayer contentsAreFlipped / geometryFlipped
-        // properties. The CA-backed blob and dot animations can no longer
-        // inject a non-flipped coordinate context into the glyph rasteriser
-        // because the rendering never enters the AppKit layer tree at all —
-        // it goes: SwiftUI layout → Metal texture → composited CALayer image.
-        // The inner `.compositingGroup()` on the text VStack is kept as
-        // belt-and-suspenders isolation within the Metal pass.
-        // `opaque: false` preserves the gradient blobs' transparent edges.
-        .drawingGroup(opaque: false)
-    }
-
     // MARK: pieces
+
+    private var content: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            upNextPill
+            Text(event.title)
+                .font(.system(size: 18, weight: .semibold))
+                .tracking(-0.3)
+                .foregroundStyle(accents.heroTitle)
+                .padding(.top, 10)
+                .lineLimit(2)
+
+            Text(timeLine)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(accents.heroTime)
+                .padding(.top, 4)
+
+            metaList.padding(.top, 12)
+
+            if let url = event.joinURL {
+                // Gated on real visibility: PhaseAnimator loops forever, and
+                // the popover's view graph outlives every close.
+                JoinButton(url: url, scheme: scheme, authUser: authUser,
+                           sheen: inJoinWindow && popoverVisibility.isVisible)
+                    .padding(.top, 14)
+            }
+        }
+        .padding(EdgeInsets(top: 16, leading: 16, bottom: 16, trailing: 16))
+        // Keep glyph rasterisation in its own layer, apart from the
+        // animated mesh underneath (the v1 mirrored-text bug lived here).
+        .compositingGroup()
+    }
 
     private var upNextPill: some View {
         HStack(spacing: 6) {
@@ -838,8 +839,11 @@ private struct HeroCardView: View {
                         // Scoped to the ring's `pulse`-driven properties only —
                         // does NOT create a global animation transaction, so the
                         // popup window and other views won't inherit the curve.
+                        // Only the way in repeats: a repeatForever curve on
+                        // the way out (pulse -> false) would also loop
+                        // forever, and did, with the popover closed.
                         .animation(
-                            .easeInOut(duration: 1.6).repeatForever(autoreverses: true),
+                            pulse ? .easeInOut(duration: 1.6).repeatForever(autoreverses: true) : .default,
                             value: pulse
                         )
                 }
@@ -854,17 +858,21 @@ private struct HeroCardView: View {
                 .tracking(0.6)
                 .textCase(.uppercase)
                 .foregroundStyle(accents.pillInk)
+                // Minutes roll instead of snapping. Width-only change, so
+                // the popover can't resize off it; same scoped-animation
+                // pattern as the agenda chevron.
+                .contentTransition(.numericText(countsDown: true))
+                .animation(.snappy(duration: 0.35), value: pillText)
+                .transaction { $0.disablesAnimations = false }
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 3)
-        .background(
-            Capsule(style: .continuous).fill(accents.pillBg)
-        )
+        .padding(.horizontal, 9)
+        .padding(.vertical, 4)
+        .background(Capsule(style: .continuous).fill(accents.pillBg))
+        .overlay(Capsule(style: .continuous).strokeBorder(accents.pulseDot.opacity(0.3), lineWidth: 1))
     }
 
     /// "Up next · 12m" or "Live · 18m left" depending on hero state.
     private var pillText: String {
-        let untilStart = event.startDate.timeIntervalSince(now)
         if untilStart <= 0 && now < event.endDate {
             // Live, in progress.
             let left = max(1, Int((event.endDate.timeIntervalSince(now) + 30) / 60))
@@ -894,31 +902,6 @@ private struct HeroCardView: View {
             }
         }
     }
-
-    // MARK: tokens dependent on scheme
-
-    @ViewBuilder
-    private var cardBackground: some View {
-        if scheme == .dark {
-            LinearGradient(
-                colors: [accents.heroBgDarkTop, accents.heroBgDarkBottom],
-                startPoint: .top, endPoint: .bottom
-            )
-        } else {
-            accents.heroBgLight
-        }
-    }
-    private var borderColor: Color {
-        scheme == .dark ? Tokens.heroBorderDark : Tokens.heroBorderLight
-    }
-    private var borderWidth: CGFloat { scheme == .dark ? 1 : 3 }
-    private var shadowColor: Color {
-        scheme == .dark
-            ? Color.black.opacity(0.7)
-            : Color.hex(0x3A2A1A, opacity: 0.18)
-    }
-    private var shadowRadius: CGFloat { scheme == .dark ? 11 : 7 }
-    private var shadowY: CGFloat { scheme == .dark ? 8 : 6 }
 }
 
 /// One row of the hero meta block — icon + text, ellipsised on overflow.
@@ -941,217 +924,61 @@ private struct MetaLine: View {
     }
 }
 
-/// Three radial-gradient blobs absolutely placed inside the hero card.
-/// Each blob drifts in a different direction and at a different speed,
-/// creating a parallax depth effect. Different durations (6 / 8 / 10 s)
-/// mean the blobs are never in sync — the background always feels alive.
-///
-/// Animation is driven by `PopoverVisibilityMonitor.isVisible` rather than
-/// `onAppear/onDisappear`. `MenuBarExtra(.window)` keeps the view graph alive
-/// permanently — `onDisappear` never fires on popover close, so any
-/// `.repeatForever()` animation started in `onAppear` runs at 60 fps with
-/// nothing on screen, consuming ~40% CPU. The monitor observes the real
-/// NSWindow key/close events and is the only reliable signal.
-private struct BlobsBackground: View {
-    @EnvironmentObject private var popoverVisibility: PopoverVisibilityMonitor
-    @EnvironmentObject private var settings: AppSettings
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    private var accents: AppTheme.Accents { settings.theme.accents }
-
-    var body: some View {
-        ZStack {
-            // Blob 1 — largest, bottom-left, 120pt  (slowest — feels furthest away)
-            blob(color: accents.blob1, size: 120)
-                .offset(x: -40 + ((!reduceMotion && popoverVisibility.isVisible) ?  14 : 0),
-                        y:  40 + ((!reduceMotion && popoverVisibility.isVisible) ? -10 : 0))
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
-                .animation(reduceMotion ? nil : .easeInOut(duration: 10).repeatForever(autoreverses: true),
-                           value: popoverVisibility.isVisible)
-
-            // Blob 2 — medium, top-right, 90pt  (medium speed)
-            blob(color: accents.blob2, size: 90)
-                .offset(x:  30 + ((!reduceMotion && popoverVisibility.isVisible) ? -12 : 0),
-                        y: -30 + ((!reduceMotion && popoverVisibility.isVisible) ?  14 : 0))
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-                .animation(reduceMotion ? nil : .easeInOut(duration: 8).repeatForever(autoreverses: true),
-                           value: popoverVisibility.isVisible)
-
-            // Blob 3 — smallest, bottom-right, 60pt  (fastest — feels closest)
-            blob(color: accents.blob3, size: 60)
-                .offset(x: -60 + ((!reduceMotion && popoverVisibility.isVisible) ?  10 : 0),
-                        y:  20 + ((!reduceMotion && popoverVisibility.isVisible) ? -12 : 0))
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
-                .animation(reduceMotion ? nil : .easeInOut(duration: 6).repeatForever(autoreverses: true),
-                           value: popoverVisibility.isVisible)
-        }
-        // Mirror the FloatingDotsBackground fix: pin the outer ZStack's size
-        // to the card content area rather than letting it negotiate per-child.
-        // Same root cause as the documented `Color.clear` flip — when the
-        // ZStack collapses around its children between layout passes, the
-        // NSView coordinate system underneath leaks into the sibling text
-        // VStack and rasterises glyphs mirrored. Pinning the frame removes
-        // the collapse cycle.
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .transaction { $0.disablesAnimations = false }
-        .allowsHitTesting(false)
-    }
-
-    private func blob(color: Color, size: CGFloat) -> some View {
-        Circle()
-            .fill(
-                RadialGradient(
-                    gradient: Gradient(stops: [
-                        .init(color: color, location: 0),
-                        .init(color: color.opacity(0), location: 0.7)
-                    ]),
-                    center: .center,
-                    startRadius: 0,
-                    endRadius: size * 0.5
-                )
-            )
-            .frame(width: size, height: size)
-    }
-}
-
-/// Small floating dots that drift lazily across the hero card background.
-///
-/// Each dot starts at a fixed origin (in points from the card's top-leading
-/// corner) and eases toward a target offset, then reverses — creating a slow,
-/// breathing movement. `Color.clear` expands the ZStack to fill the card so
-/// the dot positions are consistent regardless of card height.
-///
-/// Animation is scoped via `.animation(_:value:)` on each dot so it never
-/// cascades to sibling views (same caution applied to the pulse dot above).
-/// Driven by `PopoverVisibilityMonitor` — see `BlobsBackground` for details
-/// on why `onAppear/onDisappear` cannot be used here.
-private struct FloatingDotsBackground: View {
-    @EnvironmentObject private var popoverVisibility: PopoverVisibilityMonitor
-    @EnvironmentObject private var settings: AppSettings
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    private var accents: AppTheme.Accents { settings.theme.accents }
-
-    var body: some View {
-        ZStack(alignment: .topLeading) {
-            // Small accent dots (blob3 hue)
-            dot(color: accents.blob3, size: 5, x:  38, y:  58, dx:  22, dy:  14, t:  1.8)
-            dot(color: accents.blob3, size: 6, x: 122, y:  96, dx:  14, dy: -14, t:  2.2)
-            dot(color: accents.blob3, size: 4, x: 288, y: 118, dx: -18, dy:  -8, t:  2.0)
-
-            // Medium accent dots (blob2 hue)
-            dot(color: accents.blob2, size: 4, x: 208, y:  26, dx: -16, dy:  18, t:  2.4)
-            dot(color: accents.blob2, size: 5, x: 258, y:  74, dx: -18, dy:  10, t:  1.7)
-            dot(color: accents.blob2, size: 6, x:  54, y: 168, dx:  18, dy: -16, t:  2.6)
-
-            // Primary accent dots (blob1 hue)
-            dot(color: accents.blob1, size: 4, x:  74, y: 134, dx:  16, dy: -18, t:  1.9)
-            dot(color: accents.blob1, size: 5, x: 184, y:  46, dx: -12, dy:  22, t:  2.1)
-        }
-        // Fill the card content area without using Color.clear — on macOS,
-        // Color.clear's NSView backing can flip the coordinate system of the
-        // parent ZStack, causing all sibling views (text, icons) to mirror.
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        // Re-enable animations suppressed by the parent VStack's transaction.
-        .transaction { $0.disablesAnimations = false }
-        .allowsHitTesting(false)
-    }
-
-    private func dot(
-        color: Color, size: CGFloat,
-        x: CGFloat, y: CGFloat,
-        dx: CGFloat, dy: CGFloat,
-        t: Double
-    ) -> some View {
-        Circle()
-            .fill(color.opacity(0.55))
-            .frame(width: size, height: size)
-            .offset(x: x + ((!reduceMotion && popoverVisibility.isVisible) ? dx : 0),
-                    y: y + ((!reduceMotion && popoverVisibility.isVisible) ? dy : 0))
-            // Scoped animation — does NOT create a global transaction.
-            // Suppressed when Reduce Motion is enabled.
-            .animation(
-                reduceMotion ? nil : .easeInOut(duration: t).repeatForever(autoreverses: true),
-                value: popoverVisibility.isVisible
-            )
-    }
-}
-
-/// A 22×22 "folded corner" sticker detail at the top-right. The visible
-/// triangle is filled with the popup's paper color so it reads as a fold
-/// over the page behind. A subtle drop shadow gives it lift.
-private struct FoldCornerOverlay: View {
-    @Environment(\.colorScheme) private var scheme
-    var body: some View {
-        FoldShape()
-            .fill(scheme == .dark ? Tokens.paper : Color.white)
-            .frame(width: 22, height: 22)
-            .shadow(color: Color.black.opacity(0.06), radius: 1, x: -1, y: 1)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-            .allowsHitTesting(false)
-    }
-}
-
-private struct FoldShape: Shape {
-    func path(in rect: CGRect) -> Path {
-        // Upper-right triangle. Diagonal goes from top-left to bottom-right
-        // of the box; everything above-and-right of it is filled.
-        var p = Path()
-        p.move(to: CGPoint(x: rect.minX, y: rect.minY))
-        p.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
-        p.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
-        p.closeSubpath()
-        return p
-    }
-}
-
 private struct JoinButton: View {
     let url: URL
     let scheme: ColorScheme
     var authUser: Int? = nil
-    @State private var pressed = false
+    /// The overlay CTA's periodic sweep of light, for the hero's join window.
+    var sheen = false
     @EnvironmentObject private var lm: LocalizationManager
     @EnvironmentObject private var settings: AppSettings
 
     var body: some View {
         Button {
-            // Press ripple, then open. The animation is short so the user
-            // sees an acknowledgement even on snappy systems.
-            withAnimation(.easeOut(duration: 0.08)) { pressed = true }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
-                withAnimation(.easeOut(duration: 0.08)) { pressed = false }
-                MeetingURLOpener.open(
-                    url,
-                    authUser: authUser,
-                    placement: settings.browserPlacement,
-                    pauseMedia: settings.pauseMediaOnJoin
-                )
-            }
+            // Opens at once. The press feedback lives in the button style,
+            // so the 80 ms wait the old "ripple, then open" needed is gone.
+            MeetingURLOpener.open(
+                url,
+                authUser: authUser,
+                placement: settings.browserPlacement,
+                pauseMedia: settings.pauseMediaOnJoin
+            )
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: "video.fill")
                     .font(.system(size: 13, weight: .semibold))
                 Text(lm["popover.join"])
-                    .font(.system(size: 12, weight: scheme == .dark ? .bold : .semibold))
+                    .font(.system(size: 12, weight: .semibold))
             }
-            .foregroundStyle(Tokens.joinFg)
-            .padding(.horizontal, 12)
+            // The overlay's CTA, scaled down. Same in light and dark mode.
+            .padding(.horizontal, 14)
             .padding(.vertical, 7)
-            .background(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(settings.theme.accents.joinBg)
+            .overlay(
+                CTASheen(active: sheen)
+                    .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
             )
+            .ctaFill(settings.theme.accents, cornerRadius: 9)
         }
-        .buttonStyle(.plain)
-        .scaleEffect(pressed ? 0.97 : 1.0)
+        .buttonStyle(SpringPressStyle())
         .clickCursor()
+    }
+}
+
+/// Squash on press, spring back on release. Scoped animation that re-enables
+/// itself under the popover's `disablesAnimations` transaction.
+struct SpringPressStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.95 : 1)
+            .animation(.spring(duration: 0.25, bounce: 0.45), value: configuration.isPressed)
+            .transaction { $0.disablesAnimations = false }
     }
 }
 
 /// Compact circular Join for agenda rows. Quiet at rest (paper/line/ink) so a
 /// day full of Teams meetings doesn't become a column of accent buttons;
-/// on hover it takes the hero Join button's fill so the meaning is learned
-/// once. The 26pt circle is the hit target.
+/// on hover it takes the hero Join button's gradient so the meaning is
+/// learned once. The 26pt circle is the hit target.
 private struct RowJoinButton: View {
     let url: URL
     var authUser: Int? = nil
@@ -1170,18 +997,25 @@ private struct RowJoinButton: View {
         } label: {
             Image(systemName: "video.fill")
                 .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(hovering ? Tokens.joinFg : Tokens.ink2)
+                .foregroundStyle(hovering ? .white : Tokens.ink2)
                 .frame(width: 26, height: 26)
                 .background(
-                    Circle().fill(hovering ? settings.theme.accents.joinBg : Tokens.paper3)
+                    Circle().fill(
+                        hovering
+                            ? AnyShapeStyle(LinearGradient(
+                                colors: [settings.theme.accents.overlayCtaTop, settings.theme.accents.overlayCtaBottom],
+                                startPoint: .top, endPoint: .bottom))
+                            : AnyShapeStyle(Tokens.paper3)
+                    )
                 )
-                .overlay(Circle().stroke(hovering ? Color.clear : Tokens.line2, lineWidth: 1))
+                .overlay(Circle().strokeBorder(hovering ? Color.white.opacity(0.18) : Tokens.line2, lineWidth: 1))
                 .contentShape(Circle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(SpringPressStyle())
         .clickCursor()
         .onHover { hovering = $0 }
         .animation(.easeOut(duration: 0.12), value: hovering)
+        .transaction { $0.disablesAnimations = false }
         .accessibilityLabel(lm["popover.join"])
     }
 }
@@ -1214,15 +1048,14 @@ private struct NoUpNextLine: View {
                     .transaction { $0.disablesAnimations = false }
             }
             .padding(.horizontal, 14)
-            .padding(.vertical, 16)
-            .background(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(hovering ? Tokens.paper2 : Color.clear)
-                    .padding(.horizontal, 8)
-            )
+            .padding(.vertical, 14)
+            // Sits where the hero would, so it takes the same raised glass
+            // surface, without the hero's color.
+            .glassSurface(cornerRadius: 14, fill: hovering ? Tokens.paper3 : Tokens.paper2)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .padding(EdgeInsets(top: 4, leading: 12, bottom: 12, trailing: 12))
         .onHover { hovering = $0 }
         .clickCursor()
         .accessibilityLabel(lm.t("popover.nothingSoon", next.startTimeString))
@@ -1299,6 +1132,13 @@ private struct AgendaRow: View {
                     .font(.system(size: 12, weight: .medium).monospacedDigit())
                     .foregroundStyle(dimmed ? Tokens.ink4 : Tokens.ink3)
                     .frame(width: 52, alignment: .leading)
+
+                // Calendar color, as a bar spanning the title + meta block.
+                Capsule(style: .continuous)
+                    .fill(calendarColor.opacity(dimmed ? 0.35 : 0.9))
+                    .frame(width: 3, height: 26)
+                    .alignmentGuide(.firstTextBaseline) { $0[VerticalAlignment.center] - Self.trailingControlDrop }
+                    .accessibilityHidden(true)
 
                 // Reminder-complete toggle: a real, standalone Button (a
                 // sibling of the expand/collapse Button below, not nested
@@ -1401,9 +1241,10 @@ private struct AgendaRow: View {
             // MARK: Expanded detail panel (instant open — no content animation)
             if expanded {
                 // Leading inset = header's 14pt padding + 52pt time column +
-                // 6pt spacing, so every detail line starts under the title.
+                // 6pt spacing + 3pt calendar bar + 6pt spacing, so every
+                // detail line starts under the title.
                 AgendaRowDetailPanel(event: event, dimmed: dimmed, joinURL: joinURL)
-                    .padding(.leading, 72)
+                    .padding(.leading, 81)
                     .padding(.trailing, 14)
                     .padding(.top, 2)
                     .padding(.bottom, 12)
@@ -1414,13 +1255,16 @@ private struct AgendaRow: View {
         .background(
             ZStack {
                 if expanded {
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
                         .fill(Tokens.paper2)
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .stroke(Tokens.line, lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .strokeBorder(
+                            LinearGradient(colors: [Tokens.edgeTop, Tokens.edgeBottom], startPoint: .top, endPoint: .bottom),
+                            lineWidth: 1
+                        )
                 } else {
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(hovering && hasContent ? Tokens.paper2 : Color.clear)
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(hovering && hasContent ? Tokens.paper2 : Tokens.paper2.opacity(0))
                 }
             }
             .padding(.horizontal, 8)
@@ -1428,6 +1272,12 @@ private struct AgendaRow: View {
         .contentShape(Rectangle())
         .onHover { hovering = $0 }
         .padding(.vertical, expanded ? 2 : 0)
+    }
+
+    private var calendarColor: Color {
+        event.calendarColor.map {
+            Color(red: $0.red, green: $0.green, blue: $0.blue, opacity: $0.alpha)
+        } ?? Tokens.ink4
     }
 
     /// "30m · Olympos · Muhammed, Eren" — only segments with content render.
@@ -1613,6 +1463,9 @@ private struct PresentingToggleButton: View {
             HStack(spacing: 6) {
                 Image(systemName: isOn ? "rectangle.inset.filled" : "rectangle.on.rectangle")
                     .font(.system(size: 12))
+                    .contentTransition(.symbolEffect(.replace))
+                    .animation(.default, value: isOn)
+                    .transaction { $0.disablesAnimations = false }
                 Text(lm["popover.presentingMode"])
                     .font(.system(size: 12, weight: isOn ? .semibold : .regular))
                     .lineLimit(1)
@@ -1638,6 +1491,7 @@ private struct FooterButton: View {
     let title: String
     let action: () -> Void
     @State private var hovering = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         Button(action: action) {
@@ -1645,6 +1499,12 @@ private struct FooterButton: View {
                 if let systemImage {
                     Image(systemName: systemImage)
                         .font(.system(size: 13))
+                        // A small turn of the gear (or bounce of any other
+                        // icon) on hover.
+                        .symbolEffect(.rotate.byLayer, value: hovering && !reduceMotion)
+                        // The popover root disables animations, which also
+                        // swallows discrete symbol effects.
+                        .transaction { $0.disablesAnimations = false }
                 }
                 Text(title)
                     .font(.system(size: 12))
@@ -1768,6 +1628,12 @@ struct MenuBarLabel: View {
                 openWindow(id: WindowID.onboarding)
                 NSApp.activate(ignoringOtherApps: true)
             }
+            #if DEBUG
+            if DemoMode.flag("-SlapssDemoPopover").present {
+                openWindow(id: WindowID.demoPopover)
+                NSApp.activate(ignoringOtherApps: true)
+            }
+            #endif
         }
     }
 

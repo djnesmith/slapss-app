@@ -95,7 +95,7 @@ enum NotificationManager {
 
     /// Schedules a UN notification at a reminder's due time. Reminders use
     /// notification-only delivery — no full-screen overlay — because the
-    /// "in your face" UX is reserved for live meetings the user could miss.
+    /// full-screen takeover is reserved for live meetings the user could miss.
     static func scheduleReminderNotification(for reminder: MeetingEvent, at fireDate: Date, body: String) {
         guard fireDate > Date() else { return }
 

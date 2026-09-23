@@ -16,7 +16,29 @@ GitHub Releases are generated from it.
 - Microsoft Teams meetings are unaffected: those open in the Teams app, not a browser window.
 - Under the hood: this build is no longer sandboxed. macOS does not let a sandboxed app ask Safari to open a window, so the feature could not work at all while it was. The Mac App Store build is still sandboxed — see README for what that trade means.
 - New: **Pause playing media when I join** (Settings → General → Alert). Off by default. Sends the system Play/Pause key just before a meeting opens, so the podcast or video you had running stops on its own. It reaches Safari and Chrome tabs, which is where the sound usually is, unlike the scripting approach. Two honest caveats: it is the same key your keyboard sends, so it is a toggle — if nothing is actually playing it can start something instead — and it needs Accessibility permission, which macOS asks you to grant by hand in System Settings.
+- New: **SimplePractice** video rooms are now recognised as meeting links, so appointments with one get a Join button like any other online meeting.
 - Fixed: the per-calendar Google account option (Settings → Calendars) was missing from some calendars. If you had renamed a Google account in System Settings — common for a work Google Workspace account — its calendars were the ones that lost the option. Every calendar now offers it.
+
+## v2.2.0 — September 23, 2026
+
+A release about how Slapss looks and feels.
+
+- A new app icon: the same Slapss hand, now on the warm sunset colors of the new look, with the proper rounded macOS shape. The menu bar icon was redrawn to match.
+
+- The full-screen alert now glides in and fades out instead of snapping on and off. The card rises into place and its contents follow one after another.
+- The status at the top of the alert changes with the meeting: a clock while it's still a few minutes away, a ringing bell in the last minute, green once it has started, orange when you're late. The countdown numbers roll instead of jumping.
+- The background comes alive as the meeting gets closer. Once it's about to start, a glow runs around the edge of the card and a sweep of light crosses the Join button.
+- If you're running late, the card gives a small shake to get your attention.
+- The Snooze menu springs open, with its options cascading in.
+- Pressing Return now visibly presses the Join button, the same as clicking it.
+- The menu bar popup has a new look to match the alert. The next-meeting card now carries the same colors as your full-screen alert and comes alive as the meeting gets close: in the five minutes around the start, a glow runs around it and its Join button catches the light. The countdown rolls from minute to minute, and the Join button opens the meeting straight away.
+- Meetings in the list show their calendar's color, and the popup's cards and buttons share one cleaner style.
+- The welcome window now names the right step when it asks you to allow calendar access (it always said step 1, but that step moved to 3 when language and theme were added in front of it). Fixed in all seven languages.
+- The welcome window and Settings follow the same look. The theme picker now shows a preview of each theme's actual full-screen alert, and Settings → About has a small brand card.
+- Fixed: after you opened the menu bar popup once, its animations kept running in the background after it closed, using battery for nothing. They now stop as soon as the popup closes.
+- The full-screen alert keeps its dark look even when your Mac is in light mode, so the text on it stays easy to read.
+- All of this motion switches off when Reduce Motion is on in System Settings.
+- Slapss now needs macOS 15 Sequoia or later. On macOS 14, the App Store keeps offering version 2.1.1.
 
 ## v2.1.1 — September 11, 2026
 

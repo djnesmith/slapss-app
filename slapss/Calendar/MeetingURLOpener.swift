@@ -26,16 +26,21 @@ enum MeetingURLOpener {
     ///   `meet.google.com` link, `?authuser=N` is applied so the meeting opens
     ///   in the matching Google account. Ignored for non-Meet URLs.
     /// - Parameter placement: the user's new-window / built-in-display
-    ///   preferences. Defaults to `.browserDecides`, which is the plain
-    ///   `NSWorkspace.open` this method has always done.
+    ///   preferences. `.browserDecides` is the plain `NSWorkspace.open`.
     /// - Parameter pauseMedia: pause whatever is playing audio before opening.
     ///   Passed in rather than read here so this stays free of settings
     ///   plumbing.
+    ///
+    /// `placement` and `pauseMedia` deliberately have no defaults. Upstream's
+    /// signature is `open(_:authUser:)`, so every upstream merge brings call
+    /// sites written against it; with defaults they compile and silently
+    /// ignore both settings (the 2.1.1 row Join and the 2.2.0 hero Join both
+    /// arrived that way). Without defaults the merge fails to build instead.
     static func open(
         _ url: URL,
         authUser: Int? = nil,
-        placement: BrowserPlacement = .browserDecides,
-        pauseMedia: Bool = false
+        placement: BrowserPlacement,
+        pauseMedia: Bool
     ) {
         // Ahead of every branch below, so it applies whether the meeting opens
         // in Teams, in a placed browser window, or in the plain workspace open.
