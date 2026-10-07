@@ -44,7 +44,15 @@ enum MeetingURLOpener {
     ) {
         // Ahead of every branch below, so it applies whether the meeting opens
         // in Teams, in a placed browser window, or in the plain workspace open.
-        if pauseMedia { MediaPauser.sendPlayPauseToggle() }
+        // The open waits for the pause: run the other way round, the new
+        // meeting tab's own video could be one of the things paused.
+        guard pauseMedia else { openWithoutPausing(url, authUser: authUser, placement: placement); return }
+        MediaPauser.pausePlayingMedia {
+            openWithoutPausing(url, authUser: authUser, placement: placement)
+        }
+    }
+
+    private static func openWithoutPausing(_ url: URL, authUser: Int?, placement: BrowserPlacement) {
         let target = applyAuthUserIfNeeded(url, authUser: authUser)
         let urlString = target.absoluteString
 

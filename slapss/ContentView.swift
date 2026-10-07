@@ -718,14 +718,6 @@ enum SystemSettingsOpener {
         guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation") else { return }
         NSWorkspace.shared.open(url)
     }
-
-    /// Privacy & Security → Accessibility, which is what lets Slapss post the
-    /// Play/Pause key. A different grant from Automation above, and macOS
-    /// raises no prompt for it — the user has to tick the row themselves.
-    static func openAccessibilityPrivacy() {
-        guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") else { return }
-        NSWorkspace.shared.open(url)
-    }
 }
 
 // MARK: - Hero card

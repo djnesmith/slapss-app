@@ -274,7 +274,7 @@ enum BrowserWindowOpener {
     /// calendar data, so backslashes and quotes have to be escaped rather than
     /// trusted — otherwise a crafted URL would end the literal and the rest
     /// would be compiled as script.
-    static func appleScriptLiteral(_ value: String) -> String {
+    nonisolated static func appleScriptLiteral(_ value: String) -> String {
         let escaped = value
             .replacingOccurrences(of: "\\", with: "\\\\")
             .replacingOccurrences(of: "\"", with: "\\\"")

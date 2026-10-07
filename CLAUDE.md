@@ -330,18 +330,47 @@ ad-hoc; override on the command line (`CODE_SIGN_STYLE=Manual`,
 `codesign -v -R=<the stored requirement> <built .app>` must exit 0. Cert-signing
 also makes the grant survive future rebuilds, which ad-hoc never could.
 
-**`MediaPauser` cannot detect any of this, and the reason is not the one the code
-comments suggest.** `canPostSyntheticEvents` (`CGPreflightPostEventAccess`) does
-carry a responsible-process caveat, but it is never consulted on the post path:
-`sendPlayPauseToggle` guards only on `shouldPause`, which asks an audio question,
-and `postPlayPauseKey` ends in `CGEvent.post`, which returns Void. There is
-nothing to check and nothing to report. `canPostSyntheticEvents` is read only by
-`SettingsView` to decide whether to show the "needs permission" row — so that row
-is the *only* surface that could ever hint at this, and it answers a different
-question than "will the key actually land".
+**Superseded for media pause (2026-10-07):** `MediaPauser` no longer posts a key
+or uses Accessibility — see the next gotcha. The signing rule still holds for
+every grant it now relies on: the per-app Automation grants for Music, TV,
+Spotify, VLC, Safari and Chrome are pinned the same way.
 
-If media pause misbehaves when the signature **does** satisfy the requirement,
-the next suspect is `shouldPause` — its own docstring says the gate is unsettled.
+### Media pause must never toggle — no media key, only direct pause to running apps
+
+Until 2026-10-07 "Pause playing media when I join" posted the system Play/Pause
+key. That key is a **toggle routed by macOS to whatever holds Now Playing**:
+with no Now Playing client it **launches Music**; with a paused Safari video
+holding Now Playing it **starts that video** (both measured 2026-10-07). The
+`kAudioProcessPropertyIsRunningOutput` gate in front of it was true nearly all
+the time (Safari's GPU process, any call), so it gated nothing. There is no
+public way to ask what the key will reach: `MRMediaRemoteGetNowPlayingApplicationPID`
+returns 0 to a third-party process on macOS 27 even while Music plays.
+
+So the rule is **only ever pause**, in `MediaPausePlan` (pure, tested) +
+`MediaPauser` (runs it):
+- Address only apps already running (`NSWorkspace.runningApplications`), and
+  every script starts `if application id "…" is running then` — compiling or
+  sending a `tell` to a quit app can launch it.
+- Read state first; send only when playing. Music/Spotify: `player state` →
+  `pause`. **TV is the exception: plain `pause`, no state check.** TV's scripting
+  doesn't see streamed content — with an Apple TV stream playing, `player state`
+  reads "stopped", `player position` is missing value and `current track` errors
+  -1728 — so a gate never fires. Its `pause` is idempotent: sent twice, the
+  stream stayed paused (both verified 2026-10-07). VLC has no `pause`; its `play` toggles, so `if playing then play` in
+  one tell, and never `stop` (loses the position). VLC's terms are written as
+  raw codes (`«property AAPL»`, `«event VLC#VLC1»` — `playing` is a
+  property; `«class AAPL»` reads back as the word "playing" and fails as a
+  boolean, -1700): it has no static `.sdef`, so
+  compiling — or even running `sdef` on it — **launches VLC** to fetch its
+  terminology (it did, 2026-10-07).
+- Podcasts has no scripting dictionary (`sdef` → -192), so it is not covered.
+  Don't add it via the media key.
+- Safari/Chrome: JavaScript in each tab that pauses only `!paused && !ended`
+  media and contains no `play`. Needs "Allow JavaScript from Apple Events" in
+  each browser; the refusal is detected by that phrase and logged once per
+  launch (`Logger` category `MediaPauser`), with no fallback.
+- `MeetingURLOpener.open` waits for the pause before opening the URL, or the new
+  meeting tab's own video would be paused too.
 
 ### The Automation grant is the whole cost of the browser-window feature — keep it earned
 
