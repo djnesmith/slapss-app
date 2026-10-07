@@ -13,7 +13,7 @@ full-screen card on your display the moment a meeting starts.
 
 *Free forever. No subscription, no in-app purchase, no account, no tracking.*
 
-*If Slapss saves you a meeting or two, you can [sponsor its development](https://github.com/sponsors/theshiver). Entirely optional.*
+*I built Slapss to fix a problem I kept running into myself, and shared it so it can help others too. If it saved you a meeting or two and you'd like to say thanks, you can [buy me a coffee on GitHub Sponsors](https://github.com/sponsors/theshiver). Thank you!*
 
 </div>
 
