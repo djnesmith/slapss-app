@@ -31,6 +31,7 @@ enum MeetingLinkDetector {
             // resolution order exactly; this entry can only add a match
             // where there was none.
             ("SimplePractice", #"https?://video\.simplepractice\.com/[^\s<>"]+"#),
+            ("Telemost", #"https?://telemost\.(?:[a-zA-Z0-9-]+\.)*yandex\.(?:ru|com)/[^\s<>"]+"#),
         ]
         return raws.compactMap { name, raw in
             guard let regex = try? NSRegularExpression(pattern: raw, options: [.caseInsensitive]) else {

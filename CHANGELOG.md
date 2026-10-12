@@ -14,11 +14,18 @@ GitHub Releases are generated from it.
 - Depending on which browser you use, macOS may ask whether Slapss can control it the first time you switch one of these on. Chrome, Edge, Brave, Vivaldi, Opera and Arc need no permission for a new window. Safari has no other way to be told "new window", and no browser can be told to move a window it already has, so those cases do ask. Slapss explains before macOS does, and if you say no, meetings still open exactly as before — you just don't get the placement. You can change your mind later in System Settings → Privacy & Security → Automation.
 - Firefox is the one exception: it can open a new window but can't be positioned, and Settings says so rather than asking you for a permission that wouldn't help.
 - Microsoft Teams meetings are unaffected: those open in the Teams app, not a browser window.
-- Under the hood: this build is no longer sandboxed. macOS does not let a sandboxed app ask Safari to open a window, so the feature could not work at all while it was. The Mac App Store build is still sandboxed — see README for what that trade means.
+- Under the hood: this build is no longer sandboxed. macOS does not let a sandboxed app ask Safari to open a window, so the feature could not work at all while it was. The Mac App Store build is still sandboxed — see DEVELOPMENT.md for what that trade means.
 - New: **Pause playing media when I join** (Settings → General → Alert). Off by default. Just before a meeting opens, Slapss pauses Music, TV, Spotify and VLC, and video or audio playing in Safari and Chrome tabs. It only pauses: it never starts anything playing and never opens an app that isn't already running. macOS asks once per app whether Slapss may control it. For browser tabs, turn on "Allow JavaScript from Apple Events" in that browser (Safari: Develop menu; Chrome: View → Developer). Podcasts can't be controlled this way and isn't covered.
 - Fixed: with "Pause playing media when I join" on, joining a meeting could open the Music app, or start a paused video in Safari. Earlier builds of the setting sent the keyboard's Play/Pause key, which turns playback on as easily as off. It no longer does, and no longer needs Accessibility permission — you can remove Slapss from System Settings → Privacy & Security → Accessibility.
 - New: **SimplePractice** video rooms are now recognised as meeting links, so appointments with one get a Join button like any other online meeting.
 - Fixed: the per-calendar Google account option (Settings → Calendars) was missing from some calendars. If you had renamed a Google account in System Settings — common for a work Google Workspace account — its calendars were the ones that lost the option. Every calendar now offers it.
+
+## v2.2.2 — October 12, 2026
+
+- Fixed: snoozing the full-screen alert brought it straight back when the snooze was shorter than your **Show alert** time (for example, snoozing 3 minutes with the alert set to 10 minutes before). Snooze now waits the time you picked.
+- Fixed: Slapss kept your Mac from going to sleep on its own while it was running. Your Mac now sleeps on its normal schedule again, and when it wakes up, Slapss still shows any meeting that started while it was asleep.
+- Slapss now speaks Ukrainian. You can pick it in Preferences, and it's chosen automatically on first launch if Ukrainian is your Mac's language.
+- Join Yandex Telemost meetings directly from links in calendar event descriptions and locations.
 
 ## v2.2.1 — September 25, 2026
 

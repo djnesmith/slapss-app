@@ -15,7 +15,7 @@ It's the cheapest way to avoid work that won't be merged.
 ## What is likely to be merged
 
 - **Bug fixes** with clear reproduction steps.
-- **Translation corrections** for the seven supported languages (see below).
+- **Translation corrections** for the eight supported languages (see below).
 - **Accessibility improvements** — VoiceOver labelling, keyboard operability,
   Reduce Motion / Reduce Transparency handling.
 - **Compatibility fixes** for new macOS releases.
@@ -45,7 +45,7 @@ It's the cheapest way to avoid work that won't be merged.
    `Color.clear` flipping AppKit's coordinate system, App Nap throttling
    `Timer.scheduledTimer`, and others.
 2. **Make sure it builds.** You need **Xcode 26 or later** — see the note in
-   [`README.md`](README.md#building-from-source). Older Xcode fails with
+   [`DEVELOPMENT.md`](DEVELOPMENT.md#building-from-source). Older Xcode fails with
    actor-isolation errors that are a toolchain problem, not a code problem.
    ```
    xcodebuild build -project slapss.xcodeproj -scheme slapss -destination 'platform=macOS' CODE_SIGNING_ALLOWED=NO
@@ -70,7 +70,7 @@ dictionaries keyed by language — not `.strings` or `.xcstrings` files. Editing
 Swift dictionary in a pull request is a little awkward, but it works: find your
 language's dictionary, fix the value, leave the key alone.
 
-If you add a key, add it to **all seven** languages. English is the fallback, so a
+If you add a key, add it to **all eight** languages. English is the fallback, so a
 missing key degrades to English rather than crashing — but an incomplete
 translation is still a bug.
 

@@ -95,8 +95,9 @@ final class LocalizationManager: ObservableObject {
         case .spanish: return LocalizationManager.es
         case .german:  return LocalizationManager.de
         case .italian: return LocalizationManager.it
-        case .french:  return LocalizationManager.fr
+        case .french: return LocalizationManager.fr
         case .japanese: return LocalizationManager.ja
+        case .ukrainian: return LocalizationManager.uk
         }
     }
 }

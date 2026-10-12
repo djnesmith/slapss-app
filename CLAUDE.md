@@ -187,8 +187,8 @@ caught the project overstating. `ENABLE_*` build settings inject entitlements at
 time: `ENABLE_USER_SELECTED_FILES` is set to an explicit `NO` in both configurations
 (matching the neighbouring `ENABLE_RESOURCE_ACCESS_* = NO`) because `readonly` added
 `com.apple.security.files.user-selected.read-only` to builds up to 2.0.0. After
-touching capabilities, check a local Release build with `codesign`. `README.md` and
-`SECURITY.md` state the count and what older builds carried.
+touching capabilities, check a local Release build with `codesign`. `DEVELOPMENT.md`
+(Privacy details, moved out of the README on 2026-10-12) and `SECURITY.md` state the count and what older builds carried.
 
 One report that will keep coming back: a copy someone builds themselves also
 carries `com.apple.security.get-task-allow`, which Xcode adds to any
@@ -199,7 +199,7 @@ next message.
 **Superseded in part:** the entitlements file went to **four** with the
 new-browser-window work — `com.apple.security.automation.apple-events` was added
 deliberately — and back to **three** when the sandbox was turned off and
-`com.apple.security.app-sandbox` was removed (see the next gotcha). `README.md` /
+`com.apple.security.app-sandbox` was removed (see the next gotcha). `DEVELOPMENT.md` /
 `SECURITY.md` were updated in the same changes —
 the count in those documents is load-bearing (see above), so anything that adds
 or removes an entitlement has to move them too.
@@ -248,7 +248,7 @@ TCC: com.cancetin.slapss | com.apple.Safari | 2        <- its own grant, prompt 
 
 So `ENABLE_APP_SANDBOX = NO` in both configurations and `com.apple.security.app-sandbox`
 is gone from `slapss.entitlements`. **This diverges from Can's App Store build (upstream), which
-is sandboxed**, and `README.md` / `SECURITY.md` say so — an unsandboxed app is not
+is sandboxed**, and `DEVELOPMENT.md` / `SECURITY.md` say so — an unsandboxed app is not
 confined by its entitlements, so that count stops being a boundary and becomes a
 statement of intent. Do not quietly re-enable the sandbox to "fix" the entitlement
 story: it silently kills the feature, with no error the user can see.
@@ -464,7 +464,7 @@ Two related details:
 - `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` live in `slapss.xcodeproj/project.pbxproj` (two occurrences each — Debug + Release).
 - **Only `MARKETING_VERSION` matters for a release.** Bump both its occurrences together, and always ask David for the number first.
 - **`CURRENT_PROJECT_VERSION` is dead weight.** Upstream's Xcode Cloud assigns the build number itself, sequentially per product, and overrides whatever the project says (the committed value read `15` while App Store Connect had already delivered build 17), and a local build only stamps it into `CFBundleVersion` (currently 15), which nothing consumes. Don't bump it, and don't trust it — upstream's real counter lives in Can's App Store Connect → Xcode Cloud → Settings → Build Number.
-- Current version: **2.2.1**
+- Current version: **2.2.2**
 - The tree is **not sandboxed** as of the browser-window work; Can's App Store build is. See the App Sandbox gotcha before changing `ENABLE_APP_SANDBOX`.
 
 ---

@@ -4,125 +4,99 @@
 
 # Slapss
 
-**A full-screen meeting reminder for Mac.**
+**Meetings you can't miss.**
 
-Slapss lives in your menu bar, watches your calendar, and puts an unmissable
-full-screen card on your display the moment a meeting starts.
+A free, open-source full-screen meeting reminder for Mac.
 
-[**Download on the Mac App Store**](https://apps.apple.com/app/id6767488326) · [slapss-app.com](https://slapss-app.com) · [Changelog](CHANGELOG.md)
+### [Download on the Mac App Store](https://apps.apple.com/app/id6767488326)
 
-*Free forever. No subscription, no in-app purchase, no account, no tracking.*
+[slapss-app.com](https://slapss-app.com) · [Changelog](CHANGELOG.md) · [Support](https://slapss-app.com/support)
 
-*I built Slapss to fix a problem I kept running into myself, and shared it so it can help others too. If it saved you a meeting or two and you'd like to say thanks, you can [buy me a coffee on GitHub Sponsors](https://github.com/sponsors/theshiver). Thank you!*
+<img src="docs/demo.gif" width="720" alt="Slapss demo: the next meeting in the menu bar, then a full-screen alert with Join, Snooze and Dismiss">
 
 </div>
 
 ---
 
-## Why this repository exists
+Notifications are built to be ignored. A small banner, a soft chime, gone in three
+seconds. By the time you look up, you are already late.
 
-Slapss makes one claim above all others: **it reads your calendar locally and
-sends it nowhere.** In a closed-source binary that is a promise you have to take
-on faith. This repository is here so you don't have to — you can read every line
-that touches your calendar data.
+Slapss does the opposite. It sits in your menu bar, watches your calendar, and when
+a meeting starts it covers your screen with the one thing you need to see and a
+button to join.
 
-The app you install is still the one on the Mac App Store. Nothing about how you
-use Slapss changes.
+*Free forever. No subscription, no in-app purchase, no account, no tracking.*
 
-## What it does
+## What you get
 
-- **Menu bar status item** with the next meeting's title and a live countdown.
-- **Full-screen alert** at meeting start, with Join, Snooze, and Dismiss. Shows on one display or all of them.
-- **Calendar sources:** macOS Calendar and Reminders (EventKit) and Microsoft 365 / Exchange (Microsoft Graph).
-- **Presenting Now** — a one-click toggle that queues alerts instead of firing them while you're screen sharing.
-- **Themes:** Sunset, Ocean, Forest.
-- **Seven languages:** English, Turkish, Spanish, German, Italian, French, Japanese.
-- **Accessibility:** full VoiceOver labelling, keyboard-operable alert, and Reduce Motion / Reduce Transparency support.
+- **A full-screen alert you can't scroll past.** On one display or all of them, at
+  the start of the meeting or up to 15 minutes before.
+- **One click to join.** Zoom, Microsoft Teams, Google Meet, Webex, Whereby, Around
+  and Yandex Telemost links open straight from the alert, even when your company's
+  email security has wrapped them.
+- **Your day in the menu bar.** The next meeting and a live countdown, with today's
+  agenda one click away.
+- **Snooze that comes back.** 1, 5, 10, 15 or 30 minutes, an hour, or until the
+  meeting ends. Press Escape to dismiss.
+- **Less noise.** Skip the alert for meetings like "Lunch" or "PTO", or for ones you
+  haven't accepted. Presenting Now holds alerts while you share your screen.
+- **Reminders too.** Full-screen alerts for macOS Reminders, with one-click completion.
+- **Make it yours.** Three themes (Sunset, Ocean, Forest), an optional alert sound,
+  and eight languages: English, Turkish, Spanish, German, Italian, French, Japanese,
+  Ukrainian.
+- **Accessible.** VoiceOver labels, a keyboard-operable alert, and Reduce Motion and
+  Reduce Transparency support.
 
-## Privacy
+<p align="center">
+  <img src="https://slapss-app.com/menubar.jpg" width="49%" alt="The Slapss menu bar agenda showing the day's meetings">
+  <img src="https://slapss-app.com/calendars.jpg" width="49%" alt="Slapss setup: language, theme and calendar access">
+</p>
 
-There is no Slapss server. There is nothing to have an outage.
+## Works with your calendar
 
-- Calendar and reminder data is read through Apple's EventKit and stays on your Mac.
-- Microsoft 365 calendars are fetched directly from Microsoft Graph by the app itself, using a read-only scope (`Calendars.Read`, `User.Read`). Tokens live in your keychain.
-- No analytics, no crash reporting SDK, no telemetry, no accounts.
-- **This build is not sandboxed, and that is a deliberate divergence from the App Store build.** The App Store version of Slapss is sandboxed. This source tree sets `ENABLE_APP_SANDBOX = NO`, because the App Sandbox makes Apple events to an ordinary running application impossible — a sandboxed Slapss asking Safari to open a meeting in a new window gets `-600 procNotFound`, macOS never even asks the user, and the feature cannot work. Turning the sandbox off is what makes "Joining meetings" work with Safari. Read the consequence plainly: an unsandboxed app is not confined by the entitlements below, so they describe intent rather than an enforced boundary. If you want the sandboxed guarantees, install from the Mac App Store.
-- Its entitlements are three, in [`slapss/slapss.entitlements`](slapss/slapss.entitlements): outbound network (for Microsoft Graph), calendar access, and Apple events. Don't take this on faith, read them off the copy you installed:
-  `codesign -d --entitlements :- /Applications/slapss.app`
-  The Apple events entitlement (`com.apple.security.automation.apple-events`) exists for the two opt-in settings under Settings → General → Joining meetings: opening a join link in a new browser window, and putting that window on your built-in display. Both are off by default, and with both off no Apple event is ever sent. When you do turn one on, whether an event is sent depends on your browser: Chromium-based browsers take a new window as a launch argument and need no permission, while Safari and any request to move an existing window do. In those cases macOS asks you separately, per app, the first time Slapss tries — and the target is only the browser you have set as default. The events sent are `activate`, `make new document` and `set bounds of front window`. Nothing is ever read back. The pause setting below uses the same entitlement.
-  Two things you may see that aren't in that file. Builds up to 2.0.0 also carried `com.apple.security.files.user-selected.read-only`, injected by an Xcode build setting (`ENABLE_USER_SELECTED_FILES`); no code path ever used it and 2.0.1 removes it. And a copy you build yourself carries `com.apple.security.get-task-allow`, which Xcode adds to local builds so a debugger can attach — App Store builds don't have it.
-- The opt-in "Pause playing media when I join" setting (Settings → General → Alert, off by default) also uses Apple events. Just before a meeting opens it pauses Music, TV, Spotify and VLC, and video or audio in Safari and Chrome tabs — but only apps already running, and only what is actually playing. It never starts playback and never opens an app. The events are each player's own `pause` (VLC has none, so its `play` is sent only while VLC reports it is playing), and in browsers a short script per tab that pauses playing media elements. macOS asks per app the first time. Browser tabs also need "Allow JavaScript from Apple Events" turned on in that browser (Safari: Develop menu; Chrome: View → Developer). Earlier builds of this setting used the system Play/Pause key and an **Accessibility** grant instead; that key is a toggle, so it could launch Music or start a paused video, and it is gone. You can remove Slapss from System Settings → Privacy & Security → Accessibility.
+Anything in macOS Calendar: **iCloud, Google Calendar, Outlook and Exchange**.
+Work calendar on **Microsoft 365**? Sign in right inside Slapss, no Calendar.app
+setup needed. Guides for [Outlook](https://slapss-app.com/outlook-meeting-reminder-mac)
+and [Google Calendar](https://slapss-app.com/google-calendar-reminder-mac).
 
-## Architecture
+## Who it's for
 
-~8,900 lines of Swift across 28 files, **no third-party dependencies** — no SPM
-packages, no CocoaPods, no Carthage. Even the Microsoft sign-in flow is
-hand-rolled on `ASWebAuthenticationSession` + `CryptoKit` (PKCE).
+People who miss meetings because a notification banner never reaches them:
+back-to-back meetings, several monitors, long screen-sharing sessions, or deep
+focus and [hyperfocus](https://slapss-app.com/adhd-meeting-reminder). If calendar
+notifications keep slipping past you, Slapss is the one you can't scroll past.
 
-| Object | Responsibility |
-|---|---|
-| `CalendarAggregator` | Merges EventKit + Microsoft Graph sources, publishes `upcomingMeetings` |
-| `AlertScheduler` | Timers, watchdog, App Nap prevention, fires and queues overlays |
-| `AppSettings` | All user preferences, persisted to `UserDefaults` |
-| `LocalizationManager` | Runtime language switching without a restart |
-| `PopoverVisibilityMonitor` | Tracks real popover open/close via `NSWindow` notifications |
+## Private by design
 
-[`CLAUDE.md`](CLAUDE.md) documents the architecture in full, along with the
-non-obvious macOS and SwiftUI constraints this app runs into — `MenuBarExtra`
-never calling `onDisappear`, `Color.clear` flipping the AppKit coordinate system,
-App Nap throttling scheduled timers, and more. **Read it before changing
-anything.** Those workarounds look like mistakes until you know why they're there.
+There is no Slapss server. Your calendar is read on your Mac and sent nowhere. No
+analytics, no crash reporting, no accounts. Microsoft 365 events come straight from
+Microsoft with a read-only permission, and the sign-in stays in your keychain.
 
-## Building from source
+You don't have to take that on faith: the code is right here.
+[DEVELOPMENT.md](DEVELOPMENT.md#privacy-details) shows exactly what the app touches
+and how to check the copy you installed.
 
-Requirements: macOS 15 or later to **run**, **Xcode 26 or later** to build.
+## Open source
 
-> **Xcode 26 is a hard requirement, not a suggestion.** The project sets
-> `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`, which makes every declaration
-> implicitly `@MainActor`. Older Xcode versions don't know that build setting,
-> silently ignore it, and then fail with a wall of *"call to main actor-isolated
-> instance method in a synchronous nonisolated context"* errors. If you see
-> those, your Xcode is too old — the code is fine.
+Slapss is open source under the [Apache License 2.0](LICENSE), with no third-party
+dependencies. Want to read how it works, build it yourself, or help out? Start with
+[DEVELOPMENT.md](DEVELOPMENT.md) and [CONTRIBUTING.md](CONTRIBUTING.md). Found a
+security issue? See [SECURITY.md](SECURITY.md).
 
-```
-git clone https://github.com/theshiver/slapss-app.git
-cd slapss-app
-open slapss.xcodeproj
-```
+Requires macOS 15 or later.
 
-Two things to change for your own build:
+---
 
-1. **Signing.** In Xcode, select the `slapss` target → Signing & Capabilities →
-   set **Team** to your own Apple developer team. The committed value is the
-   upstream team and won't work for you.
-2. **Microsoft sign-in** (optional — everything else builds and runs without it).
-   The committed Azure app registration is the upstream one. To sign in against
-   your own, follow [`AZURE_SETUP.md`](AZURE_SETUP.md).
+<sub>The Slapss name, app icon, menu bar mark, and logo are trademarks and not covered
+by the code license; a fork needs its own name and icon, see [TRADEMARK.md](TRADEMARK.md).
+The only official build is the one on the [Mac App Store](https://apps.apple.com/app/id6767488326).</sub>
 
-To check that it compiles without any signing setup at all:
+<div align="center">
 
-```
-xcodebuild build -project slapss.xcodeproj -scheme slapss -destination 'platform=macOS' CODE_SIGNING_ALLOWED=NO
-```
-
-## Contributing
-
-Bug fixes, translation corrections, and accessibility improvements are welcome.
-Please read [`CONTRIBUTING.md`](CONTRIBUTING.md) first — it says what gets merged,
-what doesn't, and how long you should expect to wait.
-
-Found a security issue? Don't open an issue. See [`SECURITY.md`](SECURITY.md).
-
-## License
-
-Code is licensed under the [Apache License 2.0](LICENSE).
-
-**The Slapss name, app icon, menu bar mark, and logo are not covered by that
-license.** They are trademarks and copyrighted assets, all rights reserved. If
-you publish a fork, it must use its own name and its own icon. See
-[`TRADEMARK.md`](TRADEMARK.md).
-
-The only official build of Slapss is the one distributed from
-[the Mac App Store listing above](https://apps.apple.com/app/id6767488326).
+I built Slapss to fix a problem I kept running into myself, and shared it so it can
+help others too. If it saved you a meeting or two, you can
+[buy me a coffee on GitHub Sponsors](https://github.com/sponsors/theshiver). Thank you!
 
 Made by [Can Çetin](https://cancetin.com/).
+
+</div>

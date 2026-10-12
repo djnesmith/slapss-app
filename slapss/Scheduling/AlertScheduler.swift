@@ -181,12 +181,13 @@ final class AlertScheduler: ObservableObject {
         // silently slipped (or was skipped entirely) when the system put us
         // to sleep while the popover was closed — that was the dominant
         // cause of "the alert didn't fire while the app was running."
-        // `.idleSystemSleepDisabled` would also prevent the Mac from sleeping
-        // on its own; we deliberately don't pass that flag — we just want
-        // App Nap off, not laptop-lid-respect off.
+        // `.userInitiated` alone already includes `.idleSystemSleepDisabled`,
+        // which would keep the Mac from ever sleeping on its own. We only
+        // want App Nap off, so use the variant that leaves idle sleep alone;
+        // the wake observer below catches up on anything missed in sleep.
         if activityToken == nil {
             activityToken = ProcessInfo.processInfo.beginActivity(
-                options: [.userInitiated],
+                options: [.userInitiatedAllowingIdleSystemSleep],
                 reason: "Slapss schedules meeting alerts that must fire on time."
             )
         }
@@ -309,7 +310,7 @@ final class AlertScheduler: ObservableObject {
             // Missed-fire catch-up for meetings. Runs BEFORE the short-circuit
             // so a timer swallowed by App Nap, sleep, or a parked runloop mode
             // is still caught.
-            let overlayFireDate = effectiveStart.addingTimeInterval(-Double(overlayLeadSeconds))
+            let overlayFireDate = self.overlayFireDate(for: meeting, effectiveStart: effectiveStart, overlayLeadSeconds: overlayLeadSeconds)
             if !meeting.isReminder
                 && effectiveStart < meeting.endDate   // not a snooze-until-end
                 && overlayFireDate <= now             // overlay should have fired by now
@@ -402,6 +403,15 @@ final class AlertScheduler: ObservableObject {
         leadTimers[meeting.id] = timer
     }
 
+    /// The overlay fires `overlayLeadSeconds` before the start, but a snooze
+    /// target is already the moment the user asked to see the alert again, so
+    /// the lead is not subtracted from it. Subtracting it put any
+    /// snooze shorter than the lead in the past, and the alert came straight back.
+    private func overlayFireDate(for meeting: MeetingEvent, effectiveStart: Date, overlayLeadSeconds: Int) -> Date {
+        if snoozeUntil[meeting.id] != nil { return effectiveStart }
+        return effectiveStart.addingTimeInterval(-Double(overlayLeadSeconds))
+    }
+
     private func scheduleStart(for meeting: MeetingEvent, effectiveStart: Date, overlayLeadSeconds: Int, now: Date) {
         startTimers[meeting.id]?.invalidate()
         startTimers.removeValue(forKey: meeting.id)
@@ -411,9 +421,7 @@ final class AlertScheduler: ObservableObject {
         // window, which is wrong — the user chose not to be alerted again.
         if effectiveStart >= meeting.endDate { return }
 
-        // The overlay fires `overlayLeadSeconds` before the effective start.
-        // When overlayLeadSeconds == 0 this is identical to the original behaviour.
-        let overlayFireDate = effectiveStart.addingTimeInterval(-Double(overlayLeadSeconds))
+        let overlayFireDate = self.overlayFireDate(for: meeting, effectiveStart: effectiveStart, overlayLeadSeconds: overlayLeadSeconds)
 
         if overlayFireDate <= now {
             // Fire date is in the past — show immediately if no other alert is up
