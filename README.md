@@ -4,20 +4,31 @@
 
 # Slapss
 
-**A full-screen meeting reminder for Mac.**
+**A free, open-source full-screen meeting reminder for Mac.**
 
 Slapss lives in your menu bar, watches your calendar, and puts an unmissable
-full-screen card on your display the moment a meeting starts.
+full-screen card on your display the moment a meeting starts. It works with
+Outlook, Microsoft 365, Google Calendar, iCloud and Exchange, and joins Zoom,
+Microsoft Teams, Google Meet and Webex in one click.
 
 [**Download on the Mac App Store**](https://apps.apple.com/app/id6767488326) · [slapss-app.com](https://slapss-app.com) · [Changelog](CHANGELOG.md)
 
 *Free forever. No subscription, no in-app purchase, no account, no tracking.*
+
+<img src="https://slapss-app.com/overlay.jpg" width="720" alt="Slapss full-screen meeting alert on a Mac, with Join, Snooze and Dismiss">
 
 *I built Slapss to fix a problem I kept running into myself, and shared it so it can help others too. If it saved you a meeting or two and you'd like to say thanks, you can [buy me a coffee on GitHub Sponsors](https://github.com/sponsors/theshiver). Thank you!*
 
 </div>
 
 ---
+
+## Who it's for
+
+People who miss meetings because a notification banner never reaches them:
+back-to-back meetings, several monitors, long screen-sharing sessions, or deep
+focus and hyperfocus (many users mention ADHD). If calendar notifications keep
+slipping past you, Slapss is the one you can't scroll past.
 
 ## Why this repository exists
 
@@ -33,7 +44,7 @@ use Slapss changes.
 
 - **Menu bar status item** with the next meeting's title and a live countdown.
 - **Full-screen alert** at meeting start, with Join, Snooze, and Dismiss. Shows on one display or all of them.
-- **Calendar sources:** macOS Calendar and Reminders (EventKit) and Microsoft 365 / Exchange (Microsoft Graph).
+- **Calendar sources:** anything in macOS Calendar and Reminders (EventKit), including iCloud, Google Calendar, Outlook and Exchange accounts, plus a built-in Microsoft 365 / Exchange Online sign-in (Microsoft Graph).
 - **Presenting Now** — a one-click toggle that queues alerts instead of firing them while you're screen sharing.
 - **Themes:** Sunset, Ocean, Forest.
 - **Eight languages:** English, Turkish, Spanish, German, Italian, French, Japanese, Ukrainian.
