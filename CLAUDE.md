@@ -165,8 +165,8 @@ caught the project overstating. `ENABLE_*` build settings inject entitlements at
 time: `ENABLE_USER_SELECTED_FILES` is set to an explicit `NO` in both configurations
 (matching the neighbouring `ENABLE_RESOURCE_ACCESS_* = NO`) because `readonly` added
 `com.apple.security.files.user-selected.read-only` to builds up to 2.0.0. After
-touching capabilities, check a local Release build with `codesign`. `README.md` and
-`SECURITY.md` state the count and what older builds carried.
+touching capabilities, check a local Release build with `codesign`. `DEVELOPMENT.md`
+(Privacy details, moved out of the README on 2026-10-12) and `SECURITY.md` state the count and what older builds carried.
 
 One report that will keep coming back: a copy someone builds themselves also
 carries `com.apple.security.get-task-allow`, which Xcode adds to any
