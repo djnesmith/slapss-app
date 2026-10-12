@@ -5,12 +5,12 @@ All notable user-facing changes to Slapss.
 This file is the source of truth for release notes. The public web changelog and
 GitHub Releases are generated from it.
 
-## Unreleased
+## v2.2.2 — October 12, 2026
 
-- Slapss now speaks Ukrainian.
-- Join Yandex Telemost meetings directly from links in calendar event descriptions and locations.
+- Fixed: snoozing the full-screen alert brought it straight back when the snooze was shorter than your **Show alert** time (for example, snoozing 3 minutes with the alert set to 10 minutes before). Snooze now waits the time you picked.
 - Fixed: Slapss kept your Mac from going to sleep on its own while it was running. Your Mac now sleeps on its normal schedule again, and when it wakes up, Slapss still shows any meeting that started while it was asleep.
-
+- Slapss now speaks Ukrainian. You can pick it in Preferences, and it's chosen automatically on first launch if Ukrainian is your Mac's language.
+- Join Yandex Telemost meetings directly from links in calendar event descriptions and locations.
 
 ## v2.2.1 — September 25, 2026
 
