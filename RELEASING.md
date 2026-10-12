@@ -139,7 +139,9 @@ releases as availability, put the old ordering back.**
 `~/Projects/slapss/slapss-web` (private, Cloudflare).
 
 Copy the `CHANGELOG.md` entry into `changelog.html`, matching the existing
-markup. Update other pages only if the release genuinely changed what they say
+markup, and move the `<span class="badge-latest">Latest</span>` from the previous
+release's header to the new one (easy to miss: 2.2.1 first shipped with the
+badge still on 2.2.0). Update other pages only if the release genuinely changed what they say
 (privacy, system requirements, feature copy).
 
 **There is no deploy step.** Cloudflare builds and publishes from the connected
