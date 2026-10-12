@@ -36,7 +36,7 @@ use Slapss changes.
 - **Calendar sources:** macOS Calendar and Reminders (EventKit) and Microsoft 365 / Exchange (Microsoft Graph).
 - **Presenting Now** — a one-click toggle that queues alerts instead of firing them while you're screen sharing.
 - **Themes:** Sunset, Ocean, Forest.
-- **Seven languages:** English, Turkish, Spanish, German, Italian, French, Japanese.
+- **Eight languages:** English, Turkish, Spanish, German, Italian, French, Japanese, Ukrainian.
 - **Accessibility:** full VoiceOver labelling, keyboard-operable alert, and Reduce Motion / Reduce Transparency support.
 
 ## Privacy

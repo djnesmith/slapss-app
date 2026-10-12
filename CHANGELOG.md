@@ -7,8 +7,10 @@ GitHub Releases are generated from it.
 
 ## Unreleased
 
+- Slapss now speaks Ukrainian.
 - Join Yandex Telemost meetings directly from links in calendar event descriptions and locations.
 - Fixed: Slapss kept your Mac from going to sleep on its own while it was running. Your Mac now sleeps on its normal schedule again, and when it wakes up, Slapss still shows any meeting that started while it was asleep.
+
 
 ## v2.2.1 — September 25, 2026
 
