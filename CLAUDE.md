@@ -464,7 +464,7 @@ Two related details:
 - `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` live in `slapss.xcodeproj/project.pbxproj` (two occurrences each — Debug + Release).
 - **Only `MARKETING_VERSION` matters for a release.** Bump both its occurrences together, and always ask David for the number first.
 - **`CURRENT_PROJECT_VERSION` is dead weight.** Upstream's Xcode Cloud assigns the build number itself, sequentially per product, and overrides whatever the project says (the committed value read `15` while App Store Connect had already delivered build 17), and a local build only stamps it into `CFBundleVersion` (currently 15), which nothing consumes. Don't bump it, and don't trust it — upstream's real counter lives in Can's App Store Connect → Xcode Cloud → Settings → Build Number.
-- Current version: **2.2.2**
+- Current version: **2.2.3**
 - The tree is **not sandboxed** as of the browser-window work; Can's App Store build is. See the App Sandbox gotcha before changing `ENABLE_APP_SANDBOX`.
 
 ---
