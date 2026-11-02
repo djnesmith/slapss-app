@@ -65,3 +65,11 @@ CLAUDE.md and RELEASING.md describe this fork (built locally, tracks upstream, n
 - Commits: `765fe19`, `38a3263`, `242baf1`, `67c67f4`
 - Files: `CLAUDE.md`, `RELEASING.md`, `README.md`, `SECURITY.md`, `CHANGELOG.md`
 - Check: after the merge, CLAUDE.md and RELEASING.md still name `djnesmith/slapss-app` as origin and keep the TCC gotcha; README/SECURITY.md entitlement lists match `slapss/slapss.entitlements` (3 keys).
+
+## 8. No App Store rating prompt
+
+Upstream 2.2.3 added Apple's rating prompt (`ReviewPrompt.swift`, `requestReview` in the popover). This build doesn't come from the App Store, so it is removed. Upstream's 2.2.3 stale-alert-after-sleep fix stays.
+
+- Commits: "Drop the App Store rating prompt" (the commit that adds this entry)
+- Files: `slapss/ContentView.swift`, `slapss/Scheduling/AlertScheduler.swift` (`handleJoin`), `slapss/ReviewPrompt.swift` (deleted), `slapssTests/NoReviewPromptTests.swift`
+- Check: test `NoReviewPromptTests`; `grep -rnE 'requestReview|StoreKit|ReviewPrompt' slapss/` prints nothing. If an upstream change edits the prompt, the merge conflicts or brings the file back; delete it again.

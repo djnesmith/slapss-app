@@ -567,7 +567,6 @@ final class AlertScheduler: ObservableObject {
                 placement: settings?.browserPlacement ?? .browserDecides,
                 pauseMedia: settings?.pauseMediaOnJoin ?? false
             )
-            ReviewPrompt.recordJoin()
         }
         dismiss(meeting)
     }

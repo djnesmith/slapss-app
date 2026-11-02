@@ -19,6 +19,7 @@ GitHub Releases are generated from it.
 - Fixed: with "Pause playing media when I join" on, joining a meeting could open the Music app, or start a paused video in Safari. Earlier builds of the setting sent the keyboard's Play/Pause key, which turns playback on as easily as off. It no longer does, and no longer needs Accessibility permission — you can remove Slapss from System Settings → Privacy & Security → Accessibility.
 - New: **SimplePractice** video rooms are now recognised as meeting links, so appointments with one get a Join button like any other online meeting.
 - Fixed: the per-calendar Google account option (Settings → Calendars) was missing from some calendars. If you had renamed a Google account in System Settings — common for a work Google Workspace account — its calendars were the ones that lost the option. Every calendar now offers it.
+- Removed: upstream's App Store rating prompt (added in 2.2.3). This build doesn't come from the App Store, so it never asks.
 
 ## v2.2.3 — November 2, 2026
 
