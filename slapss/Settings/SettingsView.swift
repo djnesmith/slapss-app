@@ -207,7 +207,31 @@ struct SettingsView: View {
                     .fixedSize(horizontal: false, vertical: true)
                 Toggle(lm["settings.alert.playSound"], isOn: $settings.alertSoundEnabled)
                 Toggle(lm["settings.alert.allDisplays"], isOn: $settings.showAlertOnAllScreens)
+                Toggle(lm["settings.alert.showReminders"], isOn: $settings.showReminders)
+                    .onChange(of: settings.showReminders) { _, enabled in
+                        aggregator.setRemindersEnabled(enabled)
+                    }
+                if settings.showReminders && aggregator.reminderPermissionState != .granted {
+                    HStack(spacing: 8) {
+                        Text(reminderPermissionMessage)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        if aggregator.reminderPermissionState == .notDetermined {
+                            Button(lm["general.continue"]) {
+                                Task { await aggregator.requestReminderAccess() }
+                            }
+                            .controlSize(.small)
+                        } else {
+                            Button(lm["general.openSystemSettings"]) {
+                                SystemSettingsOpener.openRemindersPrivacy()
+                            }
+                            .controlSize(.small)
+                        }
+                    }
+                }
                 Toggle(lm["settings.alert.reminderOverlay"], isOn: $settings.showReminderOverlay)
+                    .disabled(!settings.showReminders)
                 Toggle(lm["settings.alert.pauseMedia"], isOn: $settings.pauseMediaOnJoin)
                 Text(lm["settings.alert.pauseMedia.caption"])
                     .font(.caption)
@@ -242,6 +266,14 @@ struct SettingsView: View {
                     Text(lm["settings.menuBar.allDay"]).tag(MenuBarMeetingVisibility.allDay)
                 }
                 .pickerStyle(.menu)
+                Picker(lm["settings.menuBar.hideStarted"], selection: $settings.menuBarHideStartedMinutes) {
+                    Text(lm["settings.menuBar.hideStarted.never"]).tag(AppSettings.neverHideStarted)
+                    Text(lm["settings.menuBar.hideStarted.now"]).tag(0)
+                    ForEach([5, 10, 15], id: \.self) { minutes in
+                        Text(String(format: lm["settings.menuBar.hideStarted.after"], minutes)).tag(minutes)
+                    }
+                }
+                .pickerStyle(.menu)
                 Text(lm["settings.menuBar.caption"])
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -250,26 +282,6 @@ struct SettingsView: View {
 
             Section(lm["settings.section.popover"]) {
                 Toggle(lm["settings.popover.showEarlier"], isOn: $settings.showPastMeetingsToday)
-                Toggle(lm["settings.popover.showReminders"], isOn: $settings.showReminders)
-                if settings.showReminders && aggregator.reminderPermissionState != .granted {
-                    HStack(spacing: 8) {
-                        Text(reminderPermissionMessage)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                        if aggregator.reminderPermissionState == .notDetermined {
-                            Button(lm["general.continue"]) {
-                                Task { await aggregator.requestReminderAccess() }
-                            }
-                            .controlSize(.small)
-                        } else {
-                            Button(lm["general.openSystemSettings"]) {
-                                SystemSettingsOpener.openRemindersPrivacy()
-                            }
-                            .controlSize(.small)
-                        }
-                    }
-                }
             }
 
             Section(lm["settings.section.joining"]) {
