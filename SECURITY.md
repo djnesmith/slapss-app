@@ -32,7 +32,8 @@ plainly. Note that this source tree is **not** sandboxed — see the first bulle
   the feature works, and the entitlements below no longer act as an enforced
   confinement. Prefer the App Store build if you want the sandbox.
 - **Entitlements** are outbound network client, calendar access, and Apple events
-  (`slapss/slapss.entitlements`). Verify against a build with
+  (`slapss/slapss.entitlements`). Direct Google Calendar support adds no
+  entitlement (no `network.server` or extra access). Verify against a build with
   `codesign -d --entitlements :- /Applications/slapss.app`. Builds up to 2.0.0
   additionally carried user-selected read-only file access, injected by the
   `ENABLE_USER_SELECTED_FILES` build setting and used by no code path; 2.0.1
@@ -64,16 +65,21 @@ plainly. Note that this source tree is **not** sandboxed — see the first bulle
   fallback. Builds before this change posted the system Play/Pause key through
   `CGEvent.post` under an **Accessibility** grant instead; that is removed, and
   the grant is no longer used.
-- **Network egress** goes to Microsoft Graph and Microsoft identity endpoints
-  only, and only when the user has signed in to a Microsoft 365 account.
-- **Credentials.** Microsoft OAuth tokens are stored in the system keychain. The
-  flow is authorization code + PKCE via `ASWebAuthenticationSession`; there is no
-  client secret in the app, by design.
+- **Network egress** goes only to the calendar provider endpoints for accounts
+  the user explicitly chooses to connect: Microsoft Graph and Microsoft identity
+  endpoints (`graph.microsoft.com`, `login.microsoftonline.com`) for Microsoft 365,
+  and Google OAuth and Calendar API endpoints (`accounts.google.com`,
+  `oauth2.googleapis.com`, `www.googleapis.com`) for optional direct read-only
+  Google Calendar access.
+- **Credentials.** Microsoft and Google OAuth tokens are stored locally in the
+  system keychain. Both flows use authorization code + PKCE via
+  `ASWebAuthenticationSession`; there is no client secret in the app, by design.
 - **Calendar data** never leaves the device. There is no backend to send it to.
-- The Azure application (client) ID in `slapss/Auth/MSALConfig.swift` is a public
-  client identifier. It is not a secret — it is designed to be embedded in a
-  distributed binary and is extractable from any shipped copy of the app.
+- The Azure application (client) ID in `slapss/Auth/MSALConfig.swift` and the
+  Google OAuth iOS client ID in `slapss/Auth/GoogleOAuthConfig.swift` are public
+  client identifiers. They are not secrets: both are designed to be embedded in
+  a distributed binary and are extractable from any shipped copy of the app.
 
-Things that are **not** vulnerabilities: reporting the client ID as a "leaked
+Things that are **not** vulnerabilities: reporting either client ID as a "leaked
 secret"; reporting the Apple development team ID in the Xcode project; reporting
 that a locally-modified build can read your own calendar.

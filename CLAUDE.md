@@ -27,7 +27,7 @@ Two repos:
 ### Core objects (all `ObservableObject`, injected via environment)
 | Object | Responsibility |
 |---|---|
-| `CalendarAggregator` | Merges EventKit + Microsoft Graph sources, publishes `upcomingMeetings` |
+| `CalendarAggregator` | Merges EventKit, Microsoft Graph and Google Calendar sources, deduplicates across them, publishes `upcomingMeetings` |
 | `AppSettings` | All user preferences, persisted to UserDefaults |
 | `AlertScheduler` | Timers, watchdog, App Nap prevention, fires/queues overlays |
 | `LocalizationManager` | Runtime language switching without restart |
@@ -41,6 +41,7 @@ Two repos:
 - `CalendarAggregator.swift` — merge + poll loop
 - `EventKitSource.swift` — EventKit fetch (Calendar + Reminders)
 - `GraphSource.swift` — Microsoft Graph fetch (Exchange)
+- `GoogleSource.swift` — Google Calendar fetch (direct sign-in, off until the user connects an account; `Auth/GoogleOAuthClient.swift` holds the OAuth + Keychain code)
 - `AppSettings.swift` — all `@Published` preferences + UserDefaults persistence
 - `PopoverVisibilityMonitor.swift` — NSWindow key + occlusion observer (the hidden popover never sends `willClose`)
 - `Theme.swift` — `AppTheme` (sunset/ocean/forest) + `AppTheme.Accents` color sets + `ThemeSwatchPicker` (shared by Settings and Onboarding) + `meshCard` / `ctaFill`
@@ -464,7 +465,7 @@ Two related details:
 - `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` live in `slapss.xcodeproj/project.pbxproj` (two occurrences each — Debug + Release).
 - **Only `MARKETING_VERSION` matters for a release.** Bump both its occurrences together, and always ask David for the number first.
 - **`CURRENT_PROJECT_VERSION` is dead weight.** Upstream's Xcode Cloud assigns the build number itself, sequentially per product, and overrides whatever the project says (the committed value read `15` while App Store Connect had already delivered build 17), and a local build only stamps it into `CFBundleVersion` (currently 15), which nothing consumes. Don't bump it, and don't trust it — upstream's real counter lives in Can's App Store Connect → Xcode Cloud → Settings → Build Number.
-- Current version: **2.2.3**
+- Current version: **2.4.0**
 - The tree is **not sandboxed** as of the browser-window work; Can's App Store build is. See the App Sandbox gotcha before changing `ENABLE_APP_SANDBOX`.
 
 ---

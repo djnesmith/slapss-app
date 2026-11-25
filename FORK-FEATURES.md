@@ -31,7 +31,8 @@ Two settings, both off by default: open meetings in a new browser window, and al
 "Open Google Meet as" shows for every calendar, not only ones whose account name looks like Google, so renamed Workspace accounts get it.
 
 - Commits: `960075a`, `247fcd5`, `f63c161`
-- Files: `slapss/Settings/SettingsView.swift`
+- Files: `slapss/Settings/SettingsView.swift`, `slapss/Settings/AppSettings.swift`
+- Upstream 2.4.0 deleted `AppSettings.authUser(forCalendarID:)` for `authUserValue(for:)`. The fork keeps it, and `authUserValue(for:)` calls it, so the authuser tests still run. Expect a conflict there on upstream merges; keep both.
 - Check: tests `GoogleAuthUserCalendarIDsTests`, `BrowserPlacementTests` (authuser cases). By hand: Settings > Calendars, every calendar has an "Open Google Meet as" row.
 
 ## 4. Pause media on join

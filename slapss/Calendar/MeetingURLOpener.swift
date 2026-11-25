@@ -38,7 +38,7 @@ enum MeetingURLOpener {
     /// arrived that way). Without defaults the merge fails to build instead.
     static func open(
         _ url: URL,
-        authUser: Int? = nil,
+        authUser: String? = nil,
         placement: BrowserPlacement,
         pauseMedia: Bool
     ) {
@@ -52,7 +52,7 @@ enum MeetingURLOpener {
         }
     }
 
-    private static func openWithoutPausing(_ url: URL, authUser: Int?, placement: BrowserPlacement) {
+    private static func openWithoutPausing(_ url: URL, authUser: String?, placement: BrowserPlacement) {
         let target = applyAuthUserIfNeeded(url, authUser: authUser)
         let urlString = target.absoluteString
 
@@ -89,14 +89,14 @@ enum MeetingURLOpener {
     /// links. Leaves every other URL untouched. Replacing rather than blindly
     /// appending guards against a meeting link that already carries an
     /// `authuser` value.
-    private static func applyAuthUserIfNeeded(_ url: URL, authUser: Int?) -> URL {
-        guard let authUser,
+    private static func applyAuthUserIfNeeded(_ url: URL, authUser: String?) -> URL {
+        guard let authUser, !authUser.isEmpty,
               let host = url.host, host.contains("meet.google.com"),
               var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
         else { return url }
 
         var items = (components.queryItems ?? []).filter { $0.name != "authuser" }
-        items.append(URLQueryItem(name: "authuser", value: String(authUser)))
+        items.append(URLQueryItem(name: "authuser", value: authUser))
         components.queryItems = items
         return components.url ?? url
     }

@@ -19,10 +19,11 @@ cask, built from the same source. Nothing about how you use Slapss changes.
 There is no Slapss server. There is nothing to have an outage.
 
 - Calendar and reminder data is read through Apple's EventKit and stays on your Mac.
-- Microsoft 365 calendars are fetched directly from Microsoft Graph by the app itself, using a read-only scope (`Calendars.Read`, `User.Read`). Tokens live in your keychain.
+- Microsoft 365 calendars are fetched directly from Microsoft Graph (`login.microsoftonline.com`, `graph.microsoft.com`) by the app itself, using read-only scopes (`Calendars.Read`, `User.Read`). Tokens live locally in your keychain.
+- Google Calendar accounts (optional) are fetched directly from Google (`accounts.google.com`, `oauth2.googleapis.com`, `www.googleapis.com`) by the app itself, using read-only calendar scopes (`calendar.calendarlist.readonly`, `calendar.events.readonly`, plus `openid`, `email`). Tokens live locally in your keychain.
 - No analytics, no crash reporting SDK, no telemetry, no accounts.
 - **This build is not sandboxed, and that is a deliberate divergence from the App Store build.** The App Store version of Slapss is sandboxed. This source tree sets `ENABLE_APP_SANDBOX = NO`, because the App Sandbox makes Apple events to an ordinary running application impossible — a sandboxed Slapss asking Safari to open a meeting in a new window gets `-600 procNotFound`, macOS never even asks the user, and the feature cannot work. Turning the sandbox off is what makes "Joining meetings" work with Safari. Read the consequence plainly: an unsandboxed app is not confined by the entitlements below, so they describe intent rather than an enforced boundary. If you want the sandboxed guarantees, install from the Mac App Store.
-- Its entitlements are three, in [`slapss/slapss.entitlements`](slapss/slapss.entitlements): outbound network (for Microsoft Graph), calendar access, and Apple events. Don't take this on faith, read them off the copy you installed:
+- Its entitlements are three, in [`slapss/slapss.entitlements`](slapss/slapss.entitlements): outbound network (for Microsoft Graph and, if you connect it, the Google Calendar API), calendar access, and Apple events. Don't take this on faith, read them off the copy you installed:
   `codesign -d --entitlements :- /Applications/slapss.app`
   The Apple events entitlement (`com.apple.security.automation.apple-events`) exists for the two opt-in settings under Settings → General → Joining meetings: opening a join link in a new browser window, and putting that window on your built-in display. Both are off by default, and with both off no Apple event is ever sent. When you do turn one on, whether an event is sent depends on your browser: Chromium-based browsers take a new window as a launch argument and need no permission, while Safari and any request to move an existing window do. In those cases macOS asks you separately, per app, the first time Slapss tries — and the target is only the browser you have set as default. The events sent are `activate`, `make new document` and `set bounds of front window`. Nothing is ever read back. The pause setting below uses the same entitlement.
   Two things you may see that aren't in that file. Builds up to 2.0.0 also carried `com.apple.security.files.user-selected.read-only`, injected by an Xcode build setting (`ENABLE_USER_SELECTED_FILES`); no code path ever used it and 2.0.1 removes it. And a copy you build yourself carries `com.apple.security.get-task-allow`, which Xcode adds to local builds so a debugger can attach — App Store builds don't have it.
@@ -30,13 +31,13 @@ There is no Slapss server. There is nothing to have an outage.
 
 ## Architecture
 
-~8,900 lines of Swift across 28 files, **no third-party dependencies** — no SPM
-packages, no CocoaPods, no Carthage. Even the Microsoft sign-in flow is
-hand-rolled on `ASWebAuthenticationSession` + `CryptoKit` (PKCE).
+~8,900 lines of Swift across 28 files, **no third-party dependencies** (no SPM
+packages, no CocoaPods, no Carthage). Even the Microsoft and Google sign-in
+flows are hand-rolled on `ASWebAuthenticationSession` + `CryptoKit` (PKCE).
 
 | Object | Responsibility |
 |---|---|
-| `CalendarAggregator` | Merges EventKit + Microsoft Graph sources, publishes `upcomingMeetings` |
+| `CalendarAggregator` | Merges EventKit, Microsoft Graph, and Google Calendar sources, publishes `upcomingMeetings` |
 | `AlertScheduler` | Timers, watchdog, App Nap prevention, fires and queues overlays |
 | `AppSettings` | All user preferences, persisted to `UserDefaults` |
 | `LocalizationManager` | Runtime language switching without a restart |
@@ -65,14 +66,18 @@ cd slapss-app
 open slapss.xcodeproj
 ```
 
-Two things to change for your own build:
+Three things to change for your own build:
 
-1. **Signing.** In Xcode, select the `slapss` target → Signing & Capabilities →
+1. **Signing.** In Xcode, select the `slapss` target -> Signing & Capabilities ->
    set **Team** to your own Apple developer team. The committed value is the
    upstream team and won't work for you.
-2. **Microsoft sign-in** (optional — everything else builds and runs without it).
+2. **Microsoft sign-in** (optional; everything else builds and runs without it).
    The committed Azure app registration is the upstream one. To sign in against
    your own, follow [`AZURE_SETUP.md`](AZURE_SETUP.md).
+3. **Google Calendar sign-in** (optional; everything else builds and runs without
+   it). Official builds ship with a configured Google Cloud OAuth Client ID
+   (also in `slapss/Auth/GoogleOAuthConfig.swift`). To sign in against your own
+   Google Cloud project, follow [`GOOGLE_SETUP.md`](GOOGLE_SETUP.md).
 
 To check that it compiles without any signing setup at all:
 
